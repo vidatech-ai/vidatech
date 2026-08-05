@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vidatech WiFi</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:        #0a0e1a;
+    --surface:   #111827;
+    --surface2:  #1a2235;
+    --border:    #1e2d45;
+    --accent:    #0ea5e9;
+    --accent2:   #38bdf8;
+    --success:   #10b981;
+    --warning:   #f59e0b;
+    --danger:    #ef4444;
+    --text:      #f1f5f9;
+    --muted:     #64748b;
+    --subtle:    #94a3b8;
+    --font-head: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius:    12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── PORTAL ─────────────────────────────────────────── */
+  .portal {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .portal::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(14,165,233,0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 90% 80%, rgba(56,189,248,0.07) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .portal-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(14,165,233,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(14,165,233,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  .portal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 440px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 0 1px rgba(14,165,233,0.08), 0 32px 64px rgba(0,0,0,0.4);
+  }
+
+  .portal-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .portal-logo-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .portal-logo-text { font-family: var(--font-head); }
+  .portal-logo-text .brand { font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .portal-logo-text .sub { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+
+  .portal-headline {
+    font-family: var(--font-head);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .portal-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  /* packages */
+  .packages-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+
+  .packages-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .pkg-card {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+
+  .pkg-card:hover { border-color: var(--accent); }
+
+  .pkg-card.selected {
+    border-color: var(--accent);
+    background: rgba(14,165,233,0.08);
+  }
+
+  .pkg-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 8px; right: 10px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .pkg-name {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .pkg-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: var(--font-head);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .pkg-price span { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+  .pkg-detail {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* form */
+  .field { margin-bottom: 16px; }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--subtle);
+    margin-bottom: 6px;
+    letter-spacing: 0.2px;
+  }
+
+  .field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: var(--font-body);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .field input:focus { border-color: var(--accent); }
+  .field input::placeholder { color: var(--muted); }
+
+  .btn-primary {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #0284c7);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--font-head);
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.2px;
+  }
+
+  .btn-primary:hover { opacity: 0.92; }
+  .btn-primary:active { transform: scale(0.99); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* progress */
+  .progress-wrap {
+    margin-bottom: 20px;
+    display: none;
+  }
+  .progress-wrap.show { display: block; }
+
+  .progress-bar-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-status {
+    font-size: 13px;
+    color: var(--subtle);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* session active */
+  .session-active {
+    text-align: center;
+    display: none;
+  }
+  .session-active.show { display: block; }
+
+  .session-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16,185,129,0.12);
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--success);
+    margin-bottom: 24px;
+  }
+
+  .session-dot {
+    width: 8px; height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+
+  .session-timer {
+    font-family: var(--font-mono);
+    font-size: 48px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .session-expires {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+
+  .session-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .session-meta-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+  }
+
+  .session-meta-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .session-meta-value { font-size: 14px; font-weight: 600; color: var(--text); font-family: var(--font-mono); }
+
+  .portal-footer {
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ── ADMIN ───────────────────────────────────────────── */
+  .admin-wrap { display: none; }
+  .admin-wrap.show { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+    transition: transform 0.25s;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sidebar-logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-logo-text .brand { font-family: var(--font-head); font-size: 15px; font-weight: 700; color: var(--text); }
+  .sidebar-logo-text .role { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 0 8px;
+    margin: 16px 0 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    color: var(--subtle);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    margin-bottom: 2px;
+    font-weight: 500;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(14,165,233,0.12); color: var(--accent); }
+
+  .nav-item .icon { font-size: 16px; flex-shrink: 0; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 100px;
+    padding: 2px 7px;
+  }
+
+  .sidebar-footer {
+    padding: 16px 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* admin content */
+  .admin-content {
+    flex: 1;
+    margin-left: 240px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .topbar-title {
+    font-family: var(--font-head);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--success);
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 100px;
+    padding: 5px 12px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .page { padding: 32px; display: none; }
+  .page.active { display: block; }
+
+  /* stats row */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+
+  .stat-icon {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .stat-value {
+    font-family: var(--font-head);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .stat-change {
+    font-size: 11px;
+    color: var(--success);
+    margin-top: 6px;
+    font-weight: 500;
+  }
+
+  /* tables */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .section-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-title {
+    font-family: var(--font-head);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .section-count {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 3px 10px;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  th {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 10px 20px;
+    text-align: left;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 13px 20px;
+    font-size: 13px;
+    color: var(--subtle);
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(14,165,233,0.03); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 100px;
+    padding: 3px 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-success { background: rgba(16,185,129,0.12); color: var(--success); }
+  .badge-warning { background: rgba(245,158,11,0.12); color: var(--warning); }
+  .badge-danger  { background: rgba(239,68,68,0.12);  color: var(--danger); }
+  .badge-info    { background: rgba(14,165,233,0.12); color: var(--accent); }
+
+  .mono { font-family: var(--font-mono); font-size: 12px; }
+
+  .action-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--subtle);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.12s, color 0.12s;
+    font-family: var(--font-body);
+  }
+
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* alerts */
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+  }
+  .alert-item:last-child { border-bottom: none; }
+
+  .alert-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  .alert-dot.critical { background: var(--danger); }
+  .alert-dot.warning  { background: var(--warning); }
+  .alert-dot.info     { background: var(--accent); }
+
+  .alert-body { flex: 1; }
+  .alert-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+  .alert-meta  { font-size: 11px; color: var(--muted); }
+
+  /* page grid */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  /* login overlay */
+  .login-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.4);
+  }
+
+  .login-title {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .login-sub { font-size: 13px; color: var(--muted); margin-bottom: 32px; }
+
+  .error-msg {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--danger);
+    margin-bottom: 16px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* responsive */
+  @media (max-width: 768px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .admin-content { margin-left: 0; }
+    .packages-grid { grid-template-columns: 1fr; }
+    .portal-card { padding: 32px 24px; }
+    .topbar { padding: 0 16px; }
+    .page { padding: 16px; }
+  }
+
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .session-meta { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     CUSTOMER PORTAL
+════════════════════════════════════════════════════════ -->
+<div class="portal" id="portalView">
+  <div class="portal-grid"></div>
+
+  <div class="portal-card">
+    <div class="portal-logo">
+      <div class="portal-logo-icon">📡</div>
+      <div class="portal-logo-text">
+        <div class="brand">VIDATECH WIFI</div>
+        <div class="sub">Managed Hotspot Platform</div>
+      </div>
+    </div>
+
+    <!-- Default: choose package -->
+    <div id="portalDefault">
+      <div class="portal-headline">Connect to the internet</div>
+      <div class="portal-sub">Select a package, enter your number, and pay via M-Pesa.</div>
+
+      <div class="packages-label">Available Packages</div>
+      <div class="packages-grid" id="packagesGrid">
+        <!-- Populated by JS -->
+        <div class="pkg-card selected" data-id="1" data-hours="1" data-speed="2">
+          <div class="pkg-name">Hourly</div>
+          <div class="pkg-price">KES 10 <span>/ 1hr</span></div>
+          <div class="pkg-detail">↑↓ 2 Mbps</div>
+        </div>
+        <div class="pkg-card" data-id="2" data-hours="24" data-speed="3">
+          <div class="pkg-name">Daily</div>
+          <div class="pkg-price">KES 30 <span>/ 24hrs</span></div>
+          <div class="pkg-detail">↑↓ 3 Mbps</div>
+        </div>
+        <div class="pkg-card" data-id="3" data-hours="168" data-speed="5">
+          <div class="pkg-name">Weekly</div>
+          <div class="pkg-price">KES 150 <span>/ 7 days</span></div>
+          <div class="pkg-detail">↑↓ 5 Mbps</div>
+        </div>
+        <div class="pkg-card" data-id="4" data-hours="720" data-speed="8">
+          <div class="pkg-name">Monthly</div>
+          <div class="pkg-price">KES 500 <span>/ 30 days</span></div>
+          <div class="pkg-detail">↑↓ 8 Mbps</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>M-Pesa Phone Number</label>
+        <input type="tel" id="phoneInput" placeholder="07XX XXX XXX" maxlength="13" />
+      </div>
+
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="progress-status">
+          <div class="spinner"></div>
+          <span id="progressText">Initiating payment…</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="payBtn" onclick="handlePayment()">
+        Connect Now
+      </button>
+    </div>
+
+    <!-- Active session view -->
+    <div class="session-active" id="sessionActive">
+      <div class="session-badge">
+        <div class="session-dot"></div>
+        Connected
+      </div>
+      <div class="session-timer" id="sessionTimer">00:00:00</div>
+      <div class="session-expires" id="sessionExpires">Loading expiry…</div>
+      <div class="session-meta">
+        <div class="session-meta-item">
+          <div class="session-meta-label">Package</div>
+          <div class="session-meta-value" id="sessionPkg">—</div>
+        </div>
+        <div class="session-meta-item">
+          <div class="session-meta-label">Speed</div>
+          <div class="session-meta-value" id="sessionSpeed">—</div>
+        </div>
+        <div class="session-meta-item">
+          <div class="session-meta-label">Phone</div>
+          <div class="session-meta-value" id="sessionPhone">—</div>
+        </div>
+        <div class="session-meta-item">
+          <div class="session-meta-label">Status</div>
+          <div class="session-meta-value" style="color:var(--success)">Active</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="portal-footer">
+      Secured by Vidatech &nbsp;·&nbsp; <span style="cursor:pointer;color:var(--accent)" onclick="switchToAdmin()">Admin</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     ADMIN LOGIN
+════════════════════════════════════════════════════════ -->
+<div class="login-overlay" id="loginView" style="display:none">
+  <div class="login-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">
+      <div class="sidebar-logo-icon" style="width:38px;height:38px;font-size:16px">📡</div>
+      <div>
+        <div style="font-family:var(--font-head);font-size:14px;font-weight:700">VIDATECH WIFI</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Admin Portal</div>
+      </div>
+    </div>
+    <div class="login-title">Sign in</div>
+    <div class="login-sub">Administrator access only.</div>
+
+    <div class="error-msg" id="loginError">Invalid phone number or password.</div>
+
+    <div class="field">
+      <label>Phone Number</label>
+      <input type="tel" id="adminPhone" placeholder="07XX XXX XXX" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="adminPassword" placeholder="••••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="btn-primary" onclick="doLogin()" style="margin-top:8px">Sign In</button>
+
+    <div style="margin-top:20px;text-align:center;font-size:12px;color:var(--muted)">
+      <span style="cursor:pointer;color:var(--accent)" onclick="backToPortal()">← Back to Portal</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     ADMIN DASHBOARD
+════════════════════════════════════════════════════════ -->
+<div class="admin-wrap" id="adminView">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📡</div>
+      <div class="sidebar-logo-text">
+        <div class="brand">VIDATECH</div>
+        <div class="role">Admin Console</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <button class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="icon">⚡</span> Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('sessions', this)">
+        <span class="icon">📶</span> Live Sessions
+      </button>
+
+      <div class="nav-section-label">Management</div>
+      <button class="nav-item" onclick="showPage('users', this)">
+        <span class="icon">👥</span> Subscribers
+      </button>
+      <button class="nav-item" onclick="showPage('devices', this)">
+        <span class="icon">📱</span> Devices
+      </button>
+      <button class="nav-item" onclick="showPage('packages', this)">
+        <span class="icon">📦</span> Packages
+      </button>
+      <button class="nav-item" onclick="showPage('payments', this)">
+        <span class="icon">💳</span> Payments
+      </button>
+
+      <div class="nav-section-label">Intelligence</div>
+      <button class="nav-item" onclick="showPage('reports', this)">
+        <span class="icon">📊</span> Analytics
+      </button>
+      <button class="nav-item" onclick="showPage('security', this)">
+        <span class="icon">🔒</span> Security
+        <span class="nav-badge" id="alertBadge">3</span>
+      </button>
+      <button class="nav-item" onclick="showPage('audit', this)">
+        <span class="icon">📋</span> Audit Log
+      </button>
+
+      <div class="nav-section-label">System</div>
+      <button class="nav-item" onclick="showPage('settings', this)">
+        <span class="icon">⚙️</span> Settings
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="nav-item danger" onclick="doLogout()" style="color:var(--muted)">
+        <span class="icon">🚪</span> Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="admin-content">
+    <header class="topbar">
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-right">
+        <div class="status-pill">
+          <div class="status-dot"></div>
+          Network Online
+        </div>
+        <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono)" id="topbarTime"></div>
+      </div>
+    </header>
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📶</div>
+          <div class="stat-value" id="statActive">0</div>
+          <div class="stat-label">Active Sessions</div>
+          <div class="stat-change">↑ Live</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💳</div>
+          <div class="stat-value" id="statToday">KES 0</div>
+          <div class="stat-label">Today's Revenue</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-value" id="statMonth">KES 0</div>
+          <div class="stat-label">Monthly Revenue</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔒</div>
+          <div class="stat-value" id="statAlerts">0</div>
+          <div class="stat-label">Security Alerts</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Recent Payments</div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>Phone</th><th>Package</th><th>Amount</th><th>Status</th>
+            </tr></thead>
+            <tbody id="recentPaymentsTable">
+              <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Security Alerts</div>
+          </div>
+          <div id="alertsList">
+            <div class="alert-item">
+              <div class="alert-dot warning"></div>
+              <div class="alert-body">
+                <div class="alert-title">Failed login attempts detected</div>
+                <div class="alert-meta">192.168.1.45 · 2 minutes ago</div>
+              </div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-dot info"></div>
+              <div class="alert-body">
+                <div class="alert-title">New unknown device connected</div>
+                <div class="alert-meta">MAC: AA:BB:CC:DD:EE:FF · 5 minutes ago</div>
+              </div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-dot critical"></div>
+              <div class="alert-body">
+                <div class="alert-title">Account locked after repeated failures</div>
+                <div class="alert-meta">0712345678 · 14 minutes ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Package Popularity</div>
+        </div>
+        <div id="pkgPopularity" style="padding:16px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE SESSIONS PAGE -->
+    <div class="page" id="page-sessions">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Live Sessions</div>
+          <span class="section-count" id="sessionsCount">0 active</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th>MAC Address</th><th>IP</th><th>Subscriber</th><th>Package</th><th>Expires</th><th>Action</th>
+          </tr></thead>
+          <tbody id="sessionsTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No active sessions.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SUBSCRIBERS PAGE -->
+    <div class="page" id="page-users">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Subscribers</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Phone</th><th>Status</th><th>Last Login</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="usersTable">
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DEVICES PAGE -->
+    <div class="page" id="page-devices">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Connected Devices</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>MAC Address</th><th>Hostname</th><th>IP</th><th>Status</th><th>Last Seen</th><th>Action</th>
+          </tr></thead>
+          <tbody id="devicesTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PACKAGES PAGE -->
+    <div class="page" id="page-packages">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Packages</div>
+          <button class="action-btn" onclick="alert('Create package modal coming in next build.')">+ New Package</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Price</th><th>Duration</th><th>Speed</th><th>Status</th><th>Action</th>
+          </tr></thead>
+          <tbody id="packagesTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAYMENTS PAGE -->
+    <div class="page" id="page-payments">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Payment Records</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Phone</th><th>Package</th><th>Amount</th><th>Receipt</th><th>Time</th><th>Status</th>
+          </tr></thead>
+          <tbody id="paymentsTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANALYTICS PAGE -->
+    <div class="page" id="page-reports">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-value">—</div>
+          <div class="stat-label">Peak Hour</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👑</div>
+          <div class="stat-value">—</div>
+          <div class="stat-label">Top Package</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-value">—</div>
+          <div class="stat-label">Top Customer</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📱</div>
+          <div class="stat-value">—</div>
+          <div class="stat-label">Total Devices</div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Analytics — Full charts coming in next build</div></div>
+        <div style="padding:48px;text-align:center;color:var(--muted);font-size:14px">
+          Revenue charts, peak hour heatmaps, and device usage graphs will render here.<br>
+          Connect to the live backend to populate this view.
+        </div>
+      </div>
+    </div>
+
+    <!-- SECURITY PAGE -->
+    <div class="page" id="page-security">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Security Events</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Severity</th><th>Event</th><th>Description</th><th>Source IP</th><th>Time</th><th>Status</th>
+          </tr></thead>
+          <tbody id="securityTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG PAGE -->
+    <div class="page" id="page-audit">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Audit Log</div>
+          <span style="font-size:11px;color:var(--muted)">Immutable — all admin actions recorded</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Action</th><th>Description</th><th>Actor</th><th>IP</th><th>Time</th>
+          </tr></thead>
+          <tbody id="auditTable">
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">System Settings</div></div>
+        <div style="padding:32px;color:var(--muted);font-size:14px">
+          Settings management UI renders here. Connect to the live backend to edit system settings.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /admin-content -->
+</div><!-- /admin-wrap -->
+
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────
+const API = 'https://YOUR_RENDER_URL.onrender.com'; // replace after Render deploy
+let token = localStorage.getItem('vt_token');
+let selectedPkg = { id: '1', name: 'Hourly', hours: 1, speed: '2 Mbps' };
+let sessionInterval = null;
+
+// ─── PORTAL ────────────────────────────────────────────
+document.querySelectorAll('.pkg-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedPkg = {
+      id: card.dataset.id,
+      name: card.querySelector('.pkg-name').textContent,
+      hours: parseInt(card.dataset.hours),
+      speed: card.dataset.speed + ' Mbps',
+    };
+  });
+});
+
+function setProgress(pct, text) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = text;
+}
+
+async function handlePayment() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  if (!phone) { alert('Enter your M-Pesa number.'); return; }
+
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+
+  document.getElementById('progressWrap').classList.add('show');
+  setProgress(20, 'Initiating payment…');
+
+  try {
+    const res = await fetch(`${API}/api/payments/initiate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: '00:00:00:00:00:00' }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Payment failed.');
+
+    setProgress(60, 'M-Pesa prompt sent — enter your PIN…');
+
+    // Poll for confirmation
+    const paymentId = data.payment_id;
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      if (attempts > 24) {
+        clearInterval(poll);
+        setProgress(0, '');
+        document.getElementById('progressWrap').classList.remove('show');
+        btn.disabled = false;
+        alert('Payment timed out. Please try again.');
+        return;
+      }
+      try {
+        const statusRes = await fetch(`${API}/api/payments/status/${paymentId}`);
+        const statusData = await statusRes.json();
+        if (statusData.status === 'confirmed') {
+          clearInterval(poll);
+          setProgress(100, 'Payment confirmed!');
+          setTimeout(() => showActiveSession(phone, statusData), 800);
+        } else if (statusData.status === 'failed') {
+          clearInterval(poll);
+          setProgress(0, '');
+          document.getElementById('progressWrap').classList.remove('show');
+          btn.disabled = false;
+          alert('Payment failed. Please try again.');
+        }
+      } catch(e) {}
+    }, 5000);
+
+  } catch (e) {
+    setProgress(0, '');
+    document.getElementById('progressWrap').classList.remove('show');
+    btn.disabled = false;
+    alert(e.message);
+  }
+}
+
+function showActiveSession(phone, data) {
+  document.getElementById('portalDefault').style.display = 'none';
+  document.getElementById('sessionActive').classList.add('show');
+  document.getElementById('sessionPkg').textContent = selectedPkg.name;
+  document.getElementById('sessionSpeed').textContent = selectedPkg.speed;
+  document.getElementById('sessionPhone').textContent = phone.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
+
+  const expires = new Date(Date.now() + selectedPkg.hours * 3600000);
+  document.getElementById('sessionExpires').textContent = 'Expires ' + expires.toLocaleString();
+
+  if (sessionInterval) clearInterval(sessionInterval);
+  sessionInterval = setInterval(() => {
+    const remaining = expires - Date.now();
+    if (remaining <= 0) {
+      clearInterval(sessionInterval);
+      document.getElementById('sessionTimer').textContent = '00:00:00';
+      return;
+    }
+    const h = Math.floor(remaining / 3600000).toString().padStart(2, '0');
+    const m = Math.floor((remaining % 3600000) / 60000).toString().padStart(2, '0');
+    const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
+    document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
+  }, 1000);
+}
+
+// ─── NAVIGATION ─────────────────────────────────────────
+function switchToAdmin() {
+  document.getElementById('portalView').style.display = 'none';
+  if (token) {
+    showAdmin();
+  } else {
+    document.getElementById('loginView').style.display = 'flex';
+  }
+}
+
+function backToPortal() {
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('portalView').style.display = 'flex';
+}
+
+async function doLogin() {
+  const phone = document.getElementById('adminPhone').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Login failed.');
+    token = data.access_token;
+    localStorage.setItem('vt_token', token);
+    document.getElementById('loginView').style.display = 'none';
+    showAdmin();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('vt_token');
+  token = null;
+  document.getElementById('adminView').classList.remove('show');
+  document.getElementById('portalView').style.display = 'flex';
+}
+
+function showAdmin() {
+  document.getElementById('adminView').classList.add('show');
+  loadDashboard();
+  startClock();
+}
+
+// ─── ADMIN PAGES ────────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  const titles = {
+    dashboard: 'Dashboard', sessions: 'Live Sessions', users: 'Subscribers',
+    devices: 'Devices', packages: 'Packages', payments: 'Payments',
+    reports: 'Analytics', security: 'Security Events', audit: 'Audit Log', settings: 'Settings',
+  };
+  document.getElementById('pageTitle').textContent = titles[name] || name;
+
+  const loaders = {
+    sessions: loadSessions, users: loadUsers, devices: loadDevices,
+    packages: loadPackages, payments: loadPaymentsTable,
+    security: loadSecurity, audit: loadAudit,
+  };
+  if (loaders[name]) loaders[name]();
+}
+
+function authHeaders() {
+  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
+
+async function api(path) {
+  const r = await fetch(`${API}${path}`, { headers: authHeaders() });
+  if (r.status === 401) { doLogout(); return null; }
+  return r.json();
+}
+
+async function loadDashboard() {
+  const data = await api('/api/reports/dashboard');
+  if (!data) return;
+  document.getElementById('statActive').textContent = data.active_sessions ?? 0;
+  document.getElementById('statToday').textContent = 'KES ' + (data.revenue?.today_kes ?? 0).toLocaleString();
+  document.getElementById('statMonth').textContent = 'KES ' + (data.revenue?.month_kes ?? 0).toLocaleString();
+  document.getElementById('statAlerts').textContent = data.security_alerts?.length ?? 0;
+  document.getElementById('alertBadge').textContent = data.security_alerts?.length ?? 0;
+
+  const tbody = document.getElementById('recentPaymentsTable');
+  if (!data.recent_payments?.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">No payments yet.</td></tr>';
+  } else {
+    tbody.innerHTML = data.recent_payments.map(p => `
+      <tr>
+        <td class="mono">${p.phone}</td>
+        <td>${p.packages?.name ?? '—'}</td>
+        <td style="color:var(--success);font-weight:600">KES ${p.amount_kes}</td>
+        <td>${statusBadge(p.status)}</td>
+      </tr>
+    `).join('');
+  }
+
+  const pkgEl = document.getElementById('pkgPopularity');
+  if (data.package_popularity?.length) {
+    pkgEl.innerHTML = data.package_popularity.map(p => `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${p.name}</div>
+        <div style="font-size:22px;font-weight:700;font-family:var(--font-head);color:var(--accent)">${p.sales}</div>
+        <div style="font-size:11px;color:var(--muted)">sales</div>
+      </div>
+    `).join('');
+  }
+}
+
+async function loadSessions() {
+  const data = await api('/api/sessions/active');
+  if (!data) return;
+  document.getElementById('sessionsCount').textContent = data.length + ' active';
+  const tbody = document.getElementById('sessionsTable');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No active sessions.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td class="mono">${s.mac_address}</td>
+      <td class="mono">${s.ip_address ?? '—'}</td>
+      <td>${s.full_name ?? s.phone ?? '—'}</td>
+      <td>${s.package_name ?? '—'}</td>
+      <td class="mono" style="font-size:12px">${new Date(s.expires_at).toLocaleString()}</td>
+      <td><button class="action-btn danger" onclick="terminateSession('${s.session_id}')">Terminate</button></td>
+    </tr>
+  `).join('');
+}
+
+async function terminateSession(id) {
+  if (!confirm('Terminate this session?')) return;
+  await fetch(`${API}/api/sessions/${id}/terminate`, { method: 'POST', headers: authHeaders() });
+  loadSessions();
+}
+
+async function loadUsers() {
+  const data = await api('/api/users/');
+  if (!data) return;
+  const tbody = document.getElementById('usersTable');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No subscribers yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(u => `
+    <tr>
+      <td>${u.full_name ?? '—'}</td>
+      <td class="mono">${u.phone}</td>
+      <td>${statusBadge(u.status)}</td>
+      <td style="font-size:12px;color:var(--muted)">${u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never'}</td>
+      <td>
+        <button class="action-btn danger" onclick="suspendUser('${u.id}')">Suspend</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function suspendUser(id) {
+  if (!confirm('Suspend this user?')) return;
+  await fetch(`${API}/api/users/${id}/suspend`, { method: 'POST', headers: authHeaders() });
+  loadUsers();
+}
+
+async function loadDevices() {
+  const data = await api('/api/devices/');
+  if (!data) return;
+  const tbody = document.getElementById('devicesTable');
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td class="mono">${d.mac_address}</td>
+      <td>${d.hostname ?? '—'}</td>
+      <td class="mono">${d.ip_address ?? '—'}</td>
+      <td>${statusBadge(d.status)}</td>
+      <td style="font-size:12px;color:var(--muted)">${new Date(d.last_seen_at).toLocaleString()}</td>
+      <td>
+        ${d.status === 'blocked'
+          ? `<button class="action-btn" onclick="allowDevice('${d.id}')">Allow</button>`
+          : `<button class="action-btn danger" onclick="blockDevice('${d.id}')">Block</button>`}
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function blockDevice(id) {
+  if (!confirm('Block this device?')) return;
+  await fetch(`${API}/api/devices/${id}/block`, { method: 'POST', headers: authHeaders() });
+  loadDevices();
+}
+
+async function allowDevice(id) {
+  await fetch(`${API}/api/devices/${id}/allow`, { method: 'POST', headers: authHeaders() });
+  loadDevices();
+}
+
+async function loadPackages() {
+  const data = await api('/api/packages/?active_only=false');
+  if (!data) return;
+  const tbody = document.getElementById('packagesTable');
+  tbody.innerHTML = data.map(p => `
+    <tr>
+      <td style="font-weight:500;color:var(--text)">${p.name}</td>
+      <td style="color:var(--success);font-weight:600">KES ${p.price_kes}</td>
+      <td>${p.duration_hours < 24 ? p.duration_hours + 'h' : Math.round(p.duration_hours/24) + 'd'}</td>
+      <td class="mono">${Math.round(p.download_kbps/128)} Mbps ↓</td>
+      <td>${statusBadge(p.status)}</td>
+      <td><button class="action-btn danger" onclick="deletePackage('${p.id}')">Remove</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deletePackage(id) {
+  if (!confirm('Remove this package?')) return;
+  await fetch(`${API}/api/packages/${id}`, { method: 'DELETE', headers: authHeaders() });
+  loadPackages();
+}
+
+async function loadPaymentsTable() {
+  const data = await api('/api/payments/');
+  if (!data) return;
+  const tbody = document.getElementById('paymentsTable');
+  tbody.innerHTML = data.map(p => `
+    <tr>
+      <td class="mono">${p.phone}</td>
+      <td>${p.packages?.name ?? '—'}</td>
+      <td style="color:var(--success);font-weight:600">KES ${p.amount_kes}</td>
+      <td class="mono" style="font-size:11px">${p.mpesa_transaction_code ?? '—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${new Date(p.created_at).toLocaleString()}</td>
+      <td>${statusBadge(p.status)}</td>
+    </tr>
+  `).join('');
+}
+
+async function loadSecurity() {
+  const data = await api('/api/reports/security?resolved=false');
+  if (!data) return;
+  const tbody = document.getElementById('securityTable');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No active alerts.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(e => `
+    <tr>
+      <td>${severityBadge(e.severity)}</td>
+      <td style="font-weight:500;color:var(--text)">${e.event_type.replace(/_/g,' ')}</td>
+      <td style="font-size:12px">${e.description}</td>
+      <td class="mono">${e.source_ip ?? '—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${new Date(e.created_at).toLocaleString()}</td>
+      <td><span class="badge ${e.is_resolved ? 'badge-success' : 'badge-warning'}">${e.is_resolved ? 'Resolved' : 'Open'}</span></td>
+    </tr>
+  `).join('');
+}
+
+async function loadAudit() {
+  const data = await api('/api/reports/audit?limit=50');
+  if (!data) return;
+  const tbody = document.getElementById('auditTable');
+  tbody.innerHTML = data.map(e => `
+    <tr>
+      <td><span class="badge badge-info">${e.action}</span></td>
+      <td style="font-size:12px">${e.description}</td>
+      <td class="mono" style="font-size:11px">${e.actor_role ?? 'system'}</td>
+      <td class="mono" style="font-size:11px">${e.ip_address ?? '—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${new Date(e.created_at).toLocaleString()}</td>
+    </tr>
+  `).join('');
+}
+
+// ─── HELPERS ────────────────────────────────────────────
+function statusBadge(s) {
+  const map = {
+    active: 'badge-success', confirmed: 'badge-success', allowed: 'badge-success',
+    pending: 'badge-warning', suspended: 'badge-warning', unknown: 'badge-warning',
+    blocked: 'badge-danger', failed: 'badge-danger', inactive: 'badge-danger',
+    expired: 'badge-danger', terminated: 'badge-danger',
+  };
+  return `<span class="badge ${map[s] || 'badge-info'}">${s}</span>`;
+}
+
+function severityBadge(s) {
+  const map = { critical: 'badge-danger', warning: 'badge-warning', info: 'badge-info' };
+  return `<span class="badge ${map[s] || 'badge-info'}">${s}</span>`;
+}
+
+function startClock() {
+  const el = document.getElementById('topbarTime');
+  setInterval(() => { el.textContent = new Date().toLocaleTimeString(); }, 1000);
+}
+
+// Auto-login if token exists
+if (token) showAdmin();
+</script>
+</body>
+</html>

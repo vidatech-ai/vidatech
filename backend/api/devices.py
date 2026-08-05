@@ -37,7 +37,7 @@ async def block_device(device_id: str, admin=Depends(require_admin)):
         "status": "terminated",
         "terminated_at": utcnow().isoformat(),
         "termination_reason": "device_blocked",
-    }).eq("device_id", device_id).eq("status", "active").execute()
+    }).eq("mac_address", device["mac_address"]).eq("status", "active").execute()
 
     db.table("audit_logs").insert({
         "actor_id": admin["sub"],

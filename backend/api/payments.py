@@ -84,7 +84,7 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
     # Store MAC address temporarily in payment metadata via security_events
     # (will be used in callback to create session)
     db.table("devices").upsert({
-        "mac_address": body.mac_address,
+        "mac_address": body.mac_address.lower(),
         "ip_address": request.client.host,
         "status": "unknown",
     }, on_conflict="mac_address").execute()

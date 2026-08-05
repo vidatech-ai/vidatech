@@ -28,7 +28,7 @@ from supabase import create_client
 # ---------------------------------------------------------------------------
 try:
     from dotenv import load_dotenv
-    load_dotenv(os.path.join(os.path.dirname(__file__), '../backend/.env'))
+    load_dotenv(os.path.join(os.path.dirname(__file__), 'backend/.env'))
 except ImportError:
     pass
 
@@ -291,21 +291,15 @@ async def enforce_access(router: ZLTRouter, devices: list):
                 }).eq('mac_address', mac).execute()
 
             else:
-                # Not paid or expired — block
-                # Check if device is whitelisted (admin devices)
-                dev_result = db.table('devices').select(
-                    'status'
-                ).eq('mac_address', mac).single().execute()
+                # Not paid or expired — check if device is permanently whitelisted first
+                user_result = db.table('users').select(
+                    'is_whitelisted'
+                ).contains('mac_addresses', [mac]).execute()
 
-                if dev_result.data and dev_result.data.get('status') == 'allowed':
-                    # Was previously allowed — check if user is whitelisted admin
-                    user_result = db.table('users').select(
-                        'is_whitelisted'
-                    ).contains('mac_addresses', [mac]).execute()
-
-                    if user_result.data and user_result.data[0].get('is_whitelisted'):
-                        logger.info(f'Whitelisted admin device: {mac}')
-                        continue
+                if user_result.data and user_result.data[0].get('is_whitelisted'):
+                    logger.info(f'Whitelisted admin device: {mac}')
+                    await router.allow_mac(mac)
+                    continue
 
                 await router.block_mac(mac)
                 db.table('devices').update({

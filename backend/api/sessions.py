@@ -69,6 +69,7 @@ async def check_session(mac_address: str):
     Returns allowed: true/false.
     """
     db = get_db()
+    mac_address = mac_address.lower()
 
     result = db.table("sessions").select("id, status, expires_at").eq(
         "mac_address", mac_address

@@ -24,7 +24,7 @@ router = APIRouter()
 class PaymentInitiate(BaseModel):
     phone: str
     package_id: str
-    mac_address: str
+    mac_address: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -50,11 +50,22 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
 
     package = pkg_result.data
 
+    ## Detect MAC from IP if not provided
+    client_ip = request.client.host
+    mac_address = body.mac_address
+    if not mac_address or mac_address == "00:00:00:00:00:00":
+        device_result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
+        if device_result.data:
+            mac_address = device_result.data[0]["mac_address"]
+        else:
+            mac_address = "00:00:00:00:00:00"
+
     # Create pending payment record
     payment_result = db.table("payments").insert({
         "phone": phone,
         "package_id": package["id"],
         "amount_kes": package["price_kes"],
+        "mac_address": mac_address.lower(),
         "status": "pending",
     }).execute()
 
@@ -81,13 +92,13 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
         "mpesa_checkout_id": checkout_id,
     }).eq("id", payment["id"]).execute()
 
-    # Store MAC address temporarily in payment metadata via security_events
-    # (will be used in callback to create session)
-    db.table("devices").upsert({
-        "mac_address": body.mac_address.lower(),
-        "ip_address": request.client.host,
-        "status": "unknown",
-    }, on_conflict="mac_address").execute()
+    # Update device record with current IP
+    if mac_address and mac_address != "00:00:00:00:00:00":
+        db.table("devices").upsert({
+            "mac_address": mac_address.lower(),
+            "ip_address": client_ip,
+            "status": "pending_payment",
+        }, on_conflict="mac_address").execute()
 
     logger.info(f"STK push sent to {phone} for package '{package['name']}'")
 
@@ -149,15 +160,35 @@ async def daraja_callback(request: Request):
         "confirmed_at": utcnow().isoformat(),
     }).eq("id", payment["id"]).execute()
 
-    # Find device by phone (most recent unknown device from this phone)
-    device_result = db.table("devices").select("*").eq("status", "unknown").order("last_seen_at", desc=True).limit(1).execute()
+    # Get MAC from payment record
+    mac_address = payment.get("mac_address", "00:00:00:00:00:00")
+
+    # Check for MAC spoofing — if another device is already using this MAC flag it
+    existing = db.table("sessions").select("id, ip_address").eq(
+        "mac_address", mac_address
+    ).eq("status", "active").execute()
+
+    if existing.data:
+        for s in existing.data:
+            if s.get("ip_address") and s["ip_address"] != payment.get("ip_address"):
+                db.table("security_events").insert({
+                    "event_type": "mac_spoofing",
+                    "severity": "critical",
+                    "description": f"MAC {mac_address} seen from multiple IPs — possible spoofing.",
+                    "source_ip": payment.get("ip_address"),
+                    "metadata": {"mac": mac_address, "payment_id": payment["id"]},
+                }).execute()
+                logger.warning(f"MAC spoofing detected: {mac_address}")
+
+    # Get device record
+    device_result = db.table("devices").select("*").eq("mac_address", mac_address).limit(1).execute()
     device = device_result.data[0] if device_result.data else None
 
     # Create session
     session_data = {
         "payment_id": payment["id"],
         "package_id": package["id"],
-        "mac_address": device["mac_address"] if device else "00:00:00:00:00:00",
+        "mac_address": mac_address,
         "ip_address": device["ip_address"] if device else None,
         "status": "active",
         "started_at": utcnow().isoformat(),

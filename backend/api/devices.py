@@ -4,7 +4,7 @@
 # =============================================================================
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from auth.dependencies import require_admin
 from db import get_db
 from utils import utcnow
@@ -12,6 +12,16 @@ from utils import utcnow
 logger = logging.getLogger("vidatech.devices")
 router = APIRouter()
 
+
+@router.get("/my-mac")
+async def my_mac(request: Request):
+    """Returns the MAC address of the requesting device based on IP."""
+    db = get_db()
+    client_ip = request.client.host
+    result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
+    if not result.data:
+        return {"mac_address": None}
+    return {"mac_address": result.data[0]["mac_address"]}
 
 @router.get("/")
 async def list_devices(admin=Depends(require_admin)):

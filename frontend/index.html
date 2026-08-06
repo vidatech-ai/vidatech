@@ -1011,11 +1011,10 @@ tr:hover td { background: rgba(14,165,233,0.03); }
     <h2 class="section-headline">Check Your Session</h2>
     <p class="section-sub">Enter your M-Pesa number to check your connection status.</p>
     <div style="max-width:400px;margin:0 auto">
-      <div class="field">
-        <label>M-Pesa Phone Number</label>
-        <input type="tel" id="checkPhone" placeholder="07XX XXX XXX" maxlength="13" />
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">
+        We'll automatically detect your device — no number needed.
       </div>
-      <button class="btn-primary" onclick="checkMySession()">Check Status</button>
+      <button class="btn-primary" onclick="checkMySession()">🔍 Check My Connection</button>
       <div id="checkResult" style="display:none;margin-top:24px;text-align:center">
         <div id="checkActive" style="display:none">
           <div class="session-badge" style="justify-content:center;margin-bottom:16px">
@@ -2204,6 +2203,59 @@ function startClock() {
 document.getElementById('packageModal').addEventListener('click', function(e) {
   if (e.target === this) closePackageModal();
 });
+
+let checkTimerInterval = null;
+
+async function checkMySession() {
+  document.getElementById('checkResult').style.display = 'none';
+  document.getElementById('checkActive').style.display = 'none';
+  document.getElementById('checkExpired').style.display = 'none';
+  document.getElementById('checkNotFound').style.display = 'none';
+
+  try {
+    const macRes = await fetch(`${API}/api/devices/my-mac`);
+    const macData = await macRes.json();
+    const mac = macData.mac_address;
+
+    if (!mac) {
+      document.getElementById('checkResult').style.display = 'block';
+      document.getElementById('checkNotFound').style.display = 'block';
+      return;
+    }
+
+    const res = await fetch(`${API}/api/sessions/check/${mac}`);
+    const data = await res.json();
+    document.getElementById('checkResult').style.display = 'block';
+
+    if (data.allowed) {
+      const expires = new Date(data.expires_at);
+      document.getElementById('checkActive').style.display = 'block';
+      document.getElementById('checkPkg').textContent = data.package ?? '—';
+      document.getElementById('checkExpires').textContent = 'Expires ' + expires.toLocaleString();
+      if (checkTimerInterval) clearInterval(checkTimerInterval);
+      checkTimerInterval = setInterval(() => {
+        const rem = expires - Date.now();
+        if (rem <= 0) { clearInterval(checkTimerInterval); document.getElementById('checkTimer').textContent = '00:00:00'; return; }
+        const h = Math.floor(rem / 3600000).toString().padStart(2,'0');
+        const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2,'0');
+        const s = Math.floor((rem % 60000) / 1000).toString().padStart(2,'0');
+        document.getElementById('checkTimer').textContent = `${h}:${m}:${s}`;
+      }, 1000);
+
+    } else if (data.reason === 'expired') {
+      document.getElementById('checkExpired').style.display = 'block';
+      document.getElementById('checkExpiredDetails').innerHTML =
+        `Paid at: <strong>${new Date(data.paid_at).toLocaleString()}</strong><br>
+         Expired at: <strong>${new Date(data.expired_at).toLocaleString()}</strong><br>
+         Package: <strong>${data.package}</strong>`;
+    } else {
+      document.getElementById('checkNotFound').style.display = 'block';
+    }
+
+  } catch(e) {
+    alert('Could not check session. Please try again.');
+  }
+}
 
 // Auto-login if token exists
 if (token) {

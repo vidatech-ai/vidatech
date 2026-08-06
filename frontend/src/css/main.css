@@ -909,25 +909,46 @@ tr:hover td { background: rgba(14,165,233,0.03); }
 }
 
 @media (max-width: 520px) {
-  .packages-row { grid-template-columns: 1fr; }
+  .hero { min-height: auto; padding: 80px 16px 32px; }
+  .hero-stats { display: none; }
+  .scroll-hint { display: none; }
+  .how-section { display: none; }
+  .hero-badge { font-size: 10px; padding: 4px 12px; margin-bottom: 16px; }
+  .hero-headline { font-size: 26px; margin-bottom: 12px; letter-spacing: -1px; }
+  .hero-sub { font-size: 13px; margin-bottom: 24px; }
+  .hero-cta { flex-direction: column; align-items: center; gap: 10px; }
+  .btn-hero, .btn-hero-ghost { padding: 12px 24px; font-size: 14px; }
+  .packages-section { padding: 24px 12px; }
+  .section-headline { font-size: 20px; margin-bottom: 8px; }
+  .section-sub { font-size: 12px; margin-bottom: 24px; }
+  .packages-row { grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .pkg-big { padding: 14px 10px; border-radius: 10px; width: 100%; min-width: 0; }
+  .pkg-big-icon { font-size: 18px; margin-bottom: 6px; }
+  .pkg-big-name { font-size: 13px; margin-bottom: 4px; }
+  .pkg-big-price { font-size: 18px; margin-bottom: 2px; }
+  .pkg-big-price sub { font-size: 10px; }
+  .pkg-big-duration { font-size: 10px; margin-bottom: 0; }
+  .pkg-big-features { display: none; }
+  .pkg-popular-badge { font-size: 8px; padding: 2px 6px; }
+  .pay-section { padding: 24px 12px; }
+  .pay-title { font-size: 18px; }
+  .pay-sub { font-size: 12px; margin-bottom: 16px; }
+  .pay-selected-pkg { padding: 12px 14px; margin-bottom: 14px; }
+  .field input { padding: 12px 14px; font-size: 15px; }
+  .btn-primary { padding: 14px; font-size: 15px; }
+  .portal-footer { font-size: 11px; padding: 16px; }
+  .session-timer { font-size: 36px; }
+  .session-meta { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .session-meta-item { padding: 10px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
-  .session-meta { grid-template-columns: 1fr; }
-  .hero-cta { flex-direction: column; align-items: center; }
-  .hero-headline { font-size: 28px; }
-  .hero-stats { gap: 20px; }
-  .hero-stat-value { font-size: 24px; }
-  .pkg-big-price { font-size: 24px; }
-  .section-headline { font-size: 22px; }
-  .hero { padding: 0 16px 40px; }
-  .pay-inner { padding: 0 4px; }
+  .stat-card { padding: 14px; }
+  .stat-value { font-size: 20px; }
+  .stat-label { font-size: 11px; }
   .tab-bar { flex-wrap: wrap; }
   .tab-btn { font-size: 11px; padding: 6px 12px; }
   th { font-size: 10px; padding: 8px 10px; }
   td { padding: 10px; font-size: 12px; }
   .action-btn { font-size: 11px; padding: 4px 8px; }
-  .stat-card { padding: 14px; }
-  .stat-value { font-size: 20px; }
-  .stat-label { font-size: 11px; }
   .section-header { flex-direction: column; align-items: flex-start; gap: 12px; }
   .topbar { height: 52px; }
   .topbar-title { font-size: 14px; }

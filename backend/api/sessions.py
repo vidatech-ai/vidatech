@@ -71,6 +71,44 @@ async def check_session(mac_address: str):
     db = get_db()
     mac_address = mac_address.lower()
 
+    result = db.table("sessions").select(
+        "id, status, expires_at, created_at, packages(name)"
+    ).eq(
+        "mac_address", mac_address
+    ).order("expires_at", desc=True).limit(1).execute()
+
+    if not result.data:
+        return {"allowed": False, "reason": "not_found"}
+
+    session = result.data[0]
+
+    if session["expires_at"] < utcnow().isoformat():
+        db.table("sessions").update({
+            "status": "expired",
+            "terminated_at": utcnow().isoformat(),
+            "termination_reason": "expired",
+        }).eq("id", session["id"]).execute()
+        return {
+            "allowed": False,
+            "reason": "expired",
+            "paid_at": session["created_at"],
+            "expired_at": session["expires_at"],
+            "package": session["packages"]["name"] if session.get("packages") else "—",
+        }
+
+    return {
+        "allowed": True,
+        "expires_at": session["expires_at"],
+        "paid_at": session["created_at"],
+        "package": session["packages"]["name"] if session.get("packages") else "—",
+    }
+    """
+    Portal gateway calls this to check if a device has an active paid session.
+    Returns allowed: true/false.
+    """
+    db = get_db()
+    mac_address = mac_address.lower()
+
     result = db.table("sessions").select("id, status, expires_at").eq(
         "mac_address", mac_address
     ).eq("status", "active").order("expires_at", desc=True).limit(1).execute()

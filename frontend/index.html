@@ -1818,11 +1818,15 @@ async function loadDevices() {
     });
   }
 
-  allDevices = devData.map(d => ({
-    ...d,
-    _paid: activeMacs.has((d.mac_address || '').toLowerCase()),
-    _session: sessionByMac[(d.mac_address || '').toLowerCase()] || null,
-  }));
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+  allDevices = devData
+    .filter(d => d.last_seen_at && new Date(d.last_seen_at) > tenMinutesAgo)
+    .map(d => ({
+      ...d,
+      _paid: activeMacs.has((d.mac_address || '').toLowerCase()),
+      _session: sessionByMac[(d.mac_address || '').toLowerCase()] || null,
+    }));
 
   const paid   = allDevices.filter(d => d._paid && d.status !== 'blocked').length;
   const unpaid = allDevices.filter(d => !d._paid && d.status !== 'blocked').length;

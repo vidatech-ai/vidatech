@@ -145,7 +145,7 @@ class ZLTRouter:
                 'success': True,
                 'datas': {
                     'maclist': current,
-                    'macfilter': 'open',
+                    'macfilter': 'deny',
                 },
             })
             logger.info(f'Blocked MAC: {mac}')

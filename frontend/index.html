@@ -1036,30 +1036,44 @@ tr:hover td { background: rgba(14,165,233,0.03); }
 
     <!-- Active Session (shown after payment confirmed) -->
     <div class="pay-inner session-active" id="sessionActive">
-      <div class="session-badge">
-        <div class="session-dot"></div>
-        Connected
+
+      <!-- CONNECTED STATE -->
+      <div id="stateConnected">
+        <div class="session-badge">
+          <div class="session-dot"></div>
+          Connected
+        </div>
+        <div class="session-timer" id="sessionTimer">00:00:00</div>
+        <div class="session-expires" id="sessionExpires">Loading expiry…</div>
+        <div class="session-meta">
+          <div class="session-meta-item">
+            <div class="session-meta-label">Package</div>
+            <div class="session-meta-value" id="sessionPkg">—</div>
+          </div>
+          <div class="session-meta-item">
+            <div class="session-meta-label">Speed</div>
+            <div class="session-meta-value" id="sessionSpeed">—</div>
+          </div>
+          <div class="session-meta-item">
+            <div class="session-meta-label">Phone</div>
+            <div class="session-meta-value" id="sessionPhone">—</div>
+          </div>
+          <div class="session-meta-item">
+            <div class="session-meta-label">Status</div>
+            <div class="session-meta-value" style="color:var(--success)">Active</div>
+          </div>
+        </div>
+        <button class="btn-primary" style="margin-top:28px" onclick="reconnectSession()">🔄 Reconnect</button>
       </div>
-      <div class="session-timer" id="sessionTimer">00:00:00</div>
-      <div class="session-expires" id="sessionExpires">Loading expiry…</div>
-      <div class="session-meta">
-        <div class="session-meta-item">
-          <div class="session-meta-label">Package</div>
-          <div class="session-meta-value" id="sessionPkg">—</div>
-        </div>
-        <div class="session-meta-item">
-          <div class="session-meta-label">Speed</div>
-          <div class="session-meta-value" id="sessionSpeed">—</div>
-        </div>
-        <div class="session-meta-item">
-          <div class="session-meta-label">Phone</div>
-          <div class="session-meta-value" id="sessionPhone">—</div>
-        </div>
-        <div class="session-meta-item">
-          <div class="session-meta-label">Status</div>
-          <div class="session-meta-value" style="color:var(--success)">Active</div>
-        </div>
+
+      <!-- EXPIRED STATE -->
+      <div id="stateExpired" style="display:none;text-align:center">
+        <div style="font-size:48px;margin-bottom:16px">⏱️</div>
+        <div style="font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px">Session Expired</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6" id="expiredDetails">—</div>
+        <button class="btn-primary" onclick="buyAgain()">Buy Another Package</button>
       </div>
+
     </div>
   </section>
 
@@ -1598,22 +1612,56 @@ async function handlePayment() {
 function showActiveSession(phone, data) {
   document.getElementById('payFormWrap').style.display = 'none';
   document.getElementById('sessionActive').classList.add('show');
+  document.getElementById('stateConnected').style.display = 'block';
+  document.getElementById('stateExpired').style.display = 'none';
   document.getElementById('sessionPkg').textContent = selectedPkg.name;
   document.getElementById('sessionSpeed').textContent = selectedPkg.speed;
   document.getElementById('sessionPhone').textContent = phone.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
 
+  const paidAt = new Date();
   const expires = new Date(Date.now() + selectedPkg.hours * 3600000);
   document.getElementById('sessionExpires').textContent = 'Expires ' + expires.toLocaleString();
 
   if (sessionInterval) clearInterval(sessionInterval);
   sessionInterval = setInterval(() => {
     const rem = expires - Date.now();
-    if (rem <= 0) { clearInterval(sessionInterval); document.getElementById('sessionTimer').textContent = '00:00:00'; return; }
+    if (rem <= 0) {
+      clearInterval(sessionInterval);
+      document.getElementById('stateConnected').style.display = 'none';
+      document.getElementById('stateExpired').style.display = 'block';
+      document.getElementById('expiredDetails').innerHTML =
+        `Paid at: <strong>${paidAt.toLocaleString()}</strong><br>Expired at: <strong>${expires.toLocaleString()}</strong>`;
+      return;
+    }
     const h = Math.floor(rem / 3600000).toString().padStart(2,'0');
     const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2,'0');
     const s = Math.floor((rem % 60000) / 1000).toString().padStart(2,'0');
     document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
   }, 1000);
+}
+
+async function reconnectSession() {
+  const phone = document.getElementById('sessionPhone').textContent.replace(/\s/g,'');
+  try {
+    const res = await fetch(`${API}/api/sessions/active?phone=${phone}`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      alert('You are already connected!');
+    } else {
+      document.getElementById('stateConnected').style.display = 'none';
+      document.getElementById('stateExpired').style.display = 'block';
+      document.getElementById('expiredDetails').innerHTML = 'No active session found for this device.';
+    }
+  } catch(e) {
+    alert('Could not check session. Please try again.');
+  }
+}
+
+function buyAgain() {
+  document.getElementById('sessionActive').classList.remove('show');
+  document.getElementById('stateExpired').style.display = 'none';
+  document.getElementById('payFormWrap').style.display = 'block';
+  scrollToPackages();
 }
 
 // ─── NAV ────────────────────────────────────────────

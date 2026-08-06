@@ -401,9 +401,13 @@
 
 <script src="src/js/main.js"></script>
 <script>
-const token = localStorage.getItem("vt_token");
-if (token) { document.getElementById("loginView").style.display = "none"; document.getElementById("adminView").classList.add("show"); loadDashboard(); startClock(); }
 function backToPortal() { window.location.href = "index.html"; }
+if (token) {
+  document.getElementById("loginView").style.display = "none";
+  document.getElementById("adminView").classList.add("show");
+  loadDashboard();
+  startClock();
+}
 </script>
 </body>
 </html>

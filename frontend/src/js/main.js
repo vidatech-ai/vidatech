@@ -53,6 +53,8 @@ function initPortalPackages() {
       };
       document.getElementById('selectedPkgLabel').textContent = selectedPkg.name;
       document.getElementById('selectedPkgPrice').textContent = 'KES ' + selectedPkg.price;
+      // Scroll to payment section
+      document.getElementById('paySection').scrollIntoView({ behavior: 'smooth' });
     });
   });
 }

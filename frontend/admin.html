@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vidatech — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="src/css/main.css" />
+</head>
+<body>
+<!-- ═══════════════════════════════════════════════
+     ADMIN LOGIN
+════════════════════════════════════════════════ -->
+<div class="login-overlay" id="loginView">
+  <div class="login-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">
+      <div class="sidebar-logo-icon" style="width:38px;height:38px;font-size:16px">📡</div>
+      <div>
+        <div style="font-family:var(--font-head);font-size:14px;font-weight:700">VIDATECH WIFI</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">Admin Portal</div>
+      </div>
+    </div>
+    <div class="login-title">Sign in</div>
+    <div class="login-sub">Administrator access only.</div>
+    <div class="error-msg" id="loginError">Invalid phone number or password.</div>
+    <div class="field">
+      <label>Phone Number</label>
+      <input type="tel" id="adminPhone" placeholder="07XX XXX XXX" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="adminPassword" placeholder="••••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="btn-primary" onclick="doLogin()" style="margin-top:8px">Sign In</button>
+    <div style="margin-top:20px;text-align:center;font-size:12px;color:var(--muted)">
+      <a style="cursor:pointer;color:var(--accent)" onclick="backToPortal()">← Back to Portal</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     ADMIN DASHBOARD
+════════════════════════════════════════════════ -->
+<div class="admin-wrap" id="adminView">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">📡</div>
+      <div class="sidebar-logo-text">
+        <div class="brand">VIDATECH</div>
+        <div class="role">Admin Console</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <button class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="icon">⚡</span> Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('sessions', this)">
+        <span class="icon">📶</span> Live Sessions
+      </button>
+
+      <div class="nav-section-label">Management</div>
+      <button class="nav-item" onclick="showPage('users', this)">
+        <span class="icon">👥</span> Subscribers
+      </button>
+      <button class="nav-item" onclick="showPage('devices', this)">
+        <span class="icon">📱</span> All Devices
+      </button>
+      <button class="nav-item" onclick="showPage('packages', this)">
+        <span class="icon">📦</span> Packages
+      </button>
+      <button class="nav-item" onclick="showPage('payments', this)">
+        <span class="icon">💳</span> Payments
+      </button>
+
+      <div class="nav-section-label">Intelligence</div>
+      <button class="nav-item" onclick="showPage('reports', this)">
+        <span class="icon">📊</span> Analytics
+      </button>
+      <button class="nav-item" onclick="showPage('security', this)">
+        <span class="icon">🔒</span> Security
+        <span class="nav-badge" id="alertBadge">0</span>
+      </button>
+      <button class="nav-item" onclick="showPage('audit', this)">
+        <span class="icon">📋</span> Audit Log
+      </button>
+
+      <div class="nav-section-label">System</div>
+      <button class="nav-item" onclick="showPage('settings', this)">
+        <span class="icon">⚙️</span> Settings
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="nav-item" onclick="doLogout()" style="color:var(--muted)">
+        <span class="icon">🚪</span> Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <div class="admin-content">
+    <header class="topbar">
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-right">
+        <div class="status-pill">
+          <div class="status-dot"></div>
+          Network Online
+        </div>
+        <div style="font-size:12px;color:var(--muted);font-family:var(--font-mono)" id="topbarTime"></div>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📶</div>
+          <div class="stat-value" id="statActive">0</div>
+          <div class="stat-label">Active Sessions</div>
+          <div class="stat-change">↑ Live</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💳</div>
+          <div class="stat-value" id="statToday">KES 0</div>
+          <div class="stat-label">Today's Revenue</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-value" id="statMonth">KES 0</div>
+          <div class="stat-label">Monthly Revenue</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔒</div>
+          <div class="stat-value" id="statAlerts">0</div>
+          <div class="stat-label">Security Alerts</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Recent Payments</div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>Phone</th><th>Package</th><th>Amount</th><th>Status</th>
+            </tr></thead>
+            <tbody id="recentPaymentsTable">
+              <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-card">
+          <div class="section-header">
+            <div class="section-title">Security Alerts</div>
+          </div>
+          <div id="alertsList">
+            <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Package Popularity</div></div>
+        <div id="pkgPopularity" style="padding:16px 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+      </div>
+    </div>
+
+    <!-- LIVE SESSIONS -->
+    <div class="page" id="page-sessions">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Live Sessions</div>
+          <span class="section-count" id="sessionsCount">0 active</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th>MAC Address</th><th>IP</th><th>Subscriber</th><th>Package</th><th>Expires</th><th>Action</th>
+          </tr></thead>
+          <tbody id="sessionsTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No active sessions.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SUBSCRIBERS -->
+    <div class="page" id="page-users">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Subscribers</div></div>
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Phone</th><th>Status</th><th>Last Login</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="usersTable">
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DEVICES PAGE — paid vs unpaid -->
+    <div class="page" id="page-devices">
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+        <div class="stat-card">
+          <div class="stat-icon">📱</div>
+          <div class="stat-value" id="devTotal">0</div>
+          <div class="stat-label">Total Connected</div>
+        </div>
+        <div class="stat-card" style="border-color:rgba(16,185,129,0.3)">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value" id="devPaid" style="color:var(--success)">0</div>
+          <div class="stat-label">Paid & Active</div>
+        </div>
+        <div class="stat-card" style="border-color:rgba(245,158,11,0.3)">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-value" id="devUnpaid" style="color:var(--warning)">0</div>
+          <div class="stat-label">Connected, Not Paid</div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">All Connected Devices</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="tab-bar">
+              <button class="tab-btn active" onclick="filterDevices('all', this)">All</button>
+              <button class="tab-btn" onclick="filterDevices('paid', this)">Paid</button>
+              <button class="tab-btn" onclick="filterDevices('unpaid', this)">Not Paid</button>
+              <button class="tab-btn" onclick="filterDevices('blocked', this)">Blocked</button>
+            </div>
+            <button class="action-btn" onclick="loadDevices()">↻ Refresh</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>MAC Address</th>
+            <th>Hostname</th>
+            <th>IP Address</th>
+            <th>Payment Status</th>
+            <th>Subscriber</th>
+            <th>Package</th>
+            <th>Last Seen</th>
+            <th>Action</th>
+          </tr></thead>
+          <tbody id="devicesTable">
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PACKAGES ADMIN — full CRUD -->
+    <div class="page" id="page-packages">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Packages</div>
+          <button class="btn-primary" style="width:auto;padding:8px 20px;margin-top:0;font-size:13px" onclick="openPackageModal()">+ New Package</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Price</th><th>Duration</th><th>Download</th><th>Upload</th><th>Devices</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="packagesTable">
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="page" id="page-payments">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Payment Records</div></div>
+        <table>
+          <thead><tr>
+            <th>Phone</th><th>Package</th><th>Amount</th><th>Receipt</th><th>Time</th><th>Status</th>
+          </tr></thead>
+          <tbody id="paymentsTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-reports">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">—</div><div class="stat-label">Peak Hour</div></div>
+        <div class="stat-card"><div class="stat-icon">👑</div><div class="stat-value" id="topPkg">—</div><div class="stat-label">Top Package</div></div>
+        <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value">—</div><div class="stat-label">Top Customer</div></div>
+        <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-value" id="totalDevices">—</div><div class="stat-label">Total Devices</div></div>
+      </div>
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Analytics</div></div>
+        <div style="padding:48px;text-align:center;color:var(--muted);font-size:14px">Revenue charts, peak hour heatmaps, and device usage graphs render here once connected to the live backend.</div>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="page" id="page-security">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Security Events</div></div>
+        <table>
+          <thead><tr>
+            <th>Severity</th><th>Event</th><th>Description</th><th>Source IP</th><th>Time</th><th>Status</th>
+          </tr></thead>
+          <tbody id="securityTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG -->
+    <div class="page" id="page-audit">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">Audit Log</div>
+          <span style="font-size:11px;color:var(--muted)">Immutable — all admin actions recorded</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Action</th><th>Description</th><th>Actor</th><th>IP</th><th>Time</th>
+          </tr></thead>
+          <tbody id="auditTable">
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">System Settings</div></div>
+        <div style="padding:32px;color:var(--muted);font-size:14px">Settings management UI coming soon.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PACKAGE MODAL (Create / Edit)
+════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="packageModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closePackageModal()">✕</button>
+    <div class="modal-title" id="modalTitle">New Package</div>
+    <div class="modal-sub" id="modalSub">Fill in the details below to create a new package.</div>
+
+    <input type="hidden" id="editingPackageId" value="" />
+
+    <div class="modal-grid">
+      <div class="field field-full">
+        <label>Package Name</label>
+        <input type="text" id="pkgName" placeholder="e.g. Daily" />
+      </div>
+      <div class="field field-full">
+        <label>Description (optional)</label>
+        <input type="text" id="pkgDescription" placeholder="e.g. 24 hours of fast internet access" />
+      </div>
+      <div class="field">
+        <label>Price (KES)</label>
+        <input type="number" id="pkgPrice" placeholder="30" min="1" />
+      </div>
+      <div class="field">
+        <label>Duration (Hours)</label>
+        <input type="number" id="pkgDuration" placeholder="24" min="1" />
+      </div>
+      <div class="field">
+        <label>Download Speed (Kbps)</label>
+        <input type="number" id="pkgDownload" placeholder="384" min="1" />
+      </div>
+      <div class="field">
+        <label>Upload Speed (Kbps)</label>
+        <input type="number" id="pkgUpload" placeholder="256" min="1" />
+      </div>
+      <div class="field field-full">
+        <label>Max Devices</label>
+        <input type="number" id="pkgMaxDevices" placeholder="2" min="1" max="10" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closePackageModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePackage()" style="margin-top:0">Save Package</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+<script src="src/js/main.js"></script>
+<script>
+const token = localStorage.getItem("vt_token");
+if (token) { document.getElementById("loginView").style.display = "none"; document.getElementById("adminView").classList.add("show"); loadDashboard(); startClock(); }
+function backToPortal() { window.location.href = "index.html"; }
+</script>
+</body>
+</html>

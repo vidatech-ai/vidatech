@@ -1005,6 +1005,52 @@ tr:hover td { background: rgba(14,165,233,0.03); }
     </div>
   </section>
 
+  <!-- CHECK SESSION -->
+  <section class="how-section" id="checkSection" style="background:var(--surface);border-top:1px solid var(--border)">
+    <div class="section-eyebrow">Already Paid?</div>
+    <h2 class="section-headline">Check Your Session</h2>
+    <p class="section-sub">Enter your M-Pesa number to check your connection status.</p>
+    <div style="max-width:400px;margin:0 auto">
+      <div class="field">
+        <label>M-Pesa Phone Number</label>
+        <input type="tel" id="checkPhone" placeholder="07XX XXX XXX" maxlength="13" />
+      </div>
+      <button class="btn-primary" onclick="checkMySession()">Check Status</button>
+      <div id="checkResult" style="display:none;margin-top:24px;text-align:center">
+        <div id="checkActive" style="display:none">
+          <div class="session-badge" style="justify-content:center;margin-bottom:16px">
+            <div class="session-dot"></div>
+            Connected
+          </div>
+          <div class="session-timer" id="checkTimer">00:00:00</div>
+          <div style="font-size:13px;color:var(--muted);margin:8px 0 20px" id="checkExpires">—</div>
+          <div class="session-meta">
+            <div class="session-meta-item">
+              <div class="session-meta-label">Package</div>
+              <div class="session-meta-value" id="checkPkg">—</div>
+            </div>
+            <div class="session-meta-item">
+              <div class="session-meta-label">Status</div>
+              <div class="session-meta-value" style="color:var(--success)">Active ✅</div>
+            </div>
+          </div>
+        </div>
+        <div id="checkExpired" style="display:none">
+          <div style="font-size:48px;margin-bottom:16px">⏱️</div>
+          <div style="font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px">Session Expired</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6" id="checkExpiredDetails">—</div>
+          <button class="btn-primary" onclick="scrollToPay()">Buy Another Package</button>
+        </div>
+        <div id="checkNotFound" style="display:none">
+          <div style="font-size:48px;margin-bottom:16px">❓</div>
+          <div style="font-family:var(--font-head);font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">No Session Found</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:24px">No payment found for this number.</div>
+          <button class="btn-primary" onclick="scrollToPay()">Get Connected</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- PAYMENT FORM -->
   <section class="pay-section" id="paySection">
     <div class="pay-inner" id="payFormWrap">

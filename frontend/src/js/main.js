@@ -222,9 +222,7 @@ function buyAgain() {
 
 // ─── NAV ────────────────────────────────────────────
 function switchToAdmin() {
-  document.getElementById('portalView').style.display = 'none';
-  if (token) { showAdmin(); }
-  else { document.getElementById('loginView').style.display = 'flex'; }
+  window.location.href = 'admin.html';
 }
 function backToPortal() {
   document.getElementById('loginView').style.display = 'none';

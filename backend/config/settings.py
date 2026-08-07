@@ -66,6 +66,7 @@ class Settings(BaseSettings):
 
     # STK Push settings
     DARAJA_SHORTCODE: str = "REPLACE_WITH_YOUR_TILL_OR_PAYBILL_NUMBER"
+    DARAJA_TILL_NUMBER: str = "REPLACE_WITH_YOUR_TILL_NUMBER"   # PartyB for CustomerBuyGoodsOnline
     DARAJA_PASSKEY: str = "REPLACE_WITH_YOUR_LIPA_NA_MPESA_PASSKEY"
 
     # The publicly accessible URL Daraja will POST the payment result to

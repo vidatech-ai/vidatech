@@ -710,6 +710,11 @@ function startClock() {
   setInterval(tick, 1000);
 }
 
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+
 // Close modal on overlay click
 document.getElementById('packageModal').addEventListener('click', function(e) {
   if (e.target === this) closePackageModal();

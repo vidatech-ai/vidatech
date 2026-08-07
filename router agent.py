@@ -177,7 +177,7 @@ class ZLTRouter:
                 'success': True,
                 'datas': {
                     'maclist': current,
-                    'macfilter': 'open',
+                    'macfilter': 'close',
                 },
             })
             logger.info(f'Allowed MAC: {mac}')

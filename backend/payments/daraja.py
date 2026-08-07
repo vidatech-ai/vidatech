@@ -60,7 +60,7 @@ async def initiate_stk_push(
         "TransactionType": "CustomerBuyGoodsOnline",
         "Amount": amount,
         "PartyA": phone,
-        "PartyB": settings.DARAJA_SHORTCODE,
+        "PartyB": settings.DARAJA_TILL_NUMBER,
         "PhoneNumber": phone,
         "CallBackURL": settings.DARAJA_CALLBACK_URL,
         "AccountReference": account_ref,

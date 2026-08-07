@@ -227,8 +227,7 @@ function switchToAdmin() {
   window.location.href = 'admin.html';
 }
 function backToPortal() {
-  document.getElementById('loginView').style.display = 'none';
-  document.getElementById('portalView').style.display = 'flex';
+  window.location.href = 'index.html';
 }
 
 async function doLogin() {
@@ -257,11 +256,11 @@ async function doLogin() {
 function doLogout() {
   localStorage.removeItem('vt_token');
   token = null;
-  document.getElementById('adminView').classList.remove('show');
-  document.getElementById('portalView').style.display = 'flex';
+  window.location.href = 'index.html';
 }
 
 function showAdmin() {
+  document.getElementById('loginView').style.display = 'none';
   document.getElementById('adminView').classList.add('show');
   loadDashboard();
   startClock();

@@ -64,7 +64,7 @@ initPortalPackages();
 async function loadPortalPackages() {
   try {
     const res = await fetch(`${API}/api/packages/?active_only=true`);
-    if (!res.ok) return; // fall back to static
+    if (!res.ok) return;
     const data = await res.json();
     if (!data.length) return;
 
@@ -92,9 +92,6 @@ async function loadPortalPackages() {
         </div>`;
     }).join('');
     initPortalPackages();
-    // Select first
-    const first = grid.querySelector('.pkg-big');
-    if (first) first.click();
   } catch(e) { /* keep static fallback */ }
 }
 loadPortalPackages();

@@ -64,7 +64,9 @@ async def block_device(device_id: str, admin=Depends(require_admin)):
 @router.post("/{device_id}/allow")
 async def allow_device(device_id: str, admin=Depends(require_admin)):
     db = get_db()
-    result = db.table("devices").update({"status": "allowed"}).eq("id", device_id).execute()
+    result = db.table("devices").update({
+        "status": "whitelisted"
+    }).eq("id", device_id).execute()
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Device not found.")
@@ -75,7 +77,7 @@ async def allow_device(device_id: str, admin=Depends(require_admin)):
         "action": "unblock",
         "target_table": "devices",
         "target_id": device_id,
-        "description": f"Device allowed by admin.",
+        "description": f"Device whitelisted by admin.",
     }).execute()
 
-    return {"message": "Device allowed."}
+    return {"message": "Device whitelisted."}

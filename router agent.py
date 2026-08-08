@@ -44,12 +44,18 @@ WHITELISTED_MACS = {
     if mac.strip()
 }
 
-# ZLT X17U command UUIDs (from reverse engineering)
-CMD_LOGIN       = 'd2aa9843-494b-4947-9621-a46ec652ecd9'
-CMD_GET_TOKEN   = '3830c61a-620d-47da-ae47-33d8401401c4'
-CMD_DHCP        = '5332f5ee-5be9-4843-b85f-1b251aa5f4ff'
-CMD_MAC_CTRL    = 'b3313335-2a88-4818-bddd-3abfd602b455'
-CMD_BANDWIDTH   = '382'
+# ZLT X17U command IDs (verified from filteringRules.33aa9d6e.js, Aug 2026)
+CMD_LOGIN         = 'd2aa9843-494b-4947-9621-a46ec652ecd9'
+CMD_GET_TOKEN     = '3830c61a-620d-47da-ae47-33d8401401c4'
+CMD_DHCP          = '5332f5ee-5be9-4843-b85f-1b251aa5f4ff'
+CMD_MAC_FILTER    = 23
+CMD_MAC_MODE_V4   = 28
+CMD_MAC_FILTER_V2 = "b3313335-2a88-4818-bddd-3abfd602b455"
+CMD_WIFI_STATUS   = "d4c25573-520b-49b4-af04-a7912ad3ad86"   # accept-all toggle for IPv4 (blacklist/whitelist master switch)
+CMD_TOKEN_REFRESH = 'f3b70f2f-8721-48c4-87ec-22d8c92dd3c9'
+CMD_BANDWIDTH     = '382'
+CMD_QOS    = "0b1734b4-6320-4798-b8f2-2dd7868ce513"
+CMD_REBOOT = "7a9cfe11-78bb-43aa-8041-4bcb0b839565"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,14 +72,49 @@ class ZLTRouter:
         self.base = f'http://{ROUTER_IP}'
         self.session_id = ''
         self.token = ''
-        self.client = httpx.AsyncClient(timeout=10)
+        self.client = httpx.AsyncClient(timeout=5, headers={"Connection": "close"})
 
     async def _post(self, payload: dict) -> dict:
         r = await self.client.post(
             f'{self.base}/cgi-bin/http.cgi',
             json=payload,
         )
-        return r.json()
+        result = r.json()
+
+        # Retry once on CSRF/token mismatch — race condition fix
+        if result.get('message') == 'Invalid CSRF Token' and payload.get('method') == 'POST':
+            logger.warning('CSRF token mismatch, refreshing and retrying once...')
+            try:
+                token_resp = await self.client.post(
+                    f'{self.base}/cgi-bin/http.cgi',
+                    json={'cmd': CMD_TOKEN_REFRESH, 'method': 'GET', 'sessionId': self.session_id},
+                )
+                self.token = token_resp.json().get('token', self.token)
+                payload['token'] = self.token
+                r = await self.client.post(
+                    f'{self.base}/cgi-bin/http.cgi',
+                    json=payload,
+                )
+                result = r.json()
+            except Exception as e:
+                logger.error(f'CSRF retry failed: {e}')
+
+        # Frontend refreshes the token after every POST — match that behavior
+        if payload.get('method') == 'POST':
+            try:
+                token_resp = await self.client.post(
+                    f'{self.base}/cgi-bin/http.cgi',
+                    json={
+                        'cmd': CMD_TOKEN_REFRESH,
+                        'method': 'GET',
+                        'sessionId': self.session_id,
+                    },
+                )
+                self.token = token_resp.json().get('token', self.token)
+            except Exception:
+                pass
+
+        return result
 
     async def login(self) -> bool:
         try:
@@ -126,34 +167,85 @@ class ZLTRouter:
             logger.error(f'Failed to get devices: {e}')
             return []
 
+    async def _get_mac_list(self, subcmd=0):
+        data = await self._post({
+            'cmd': CMD_MAC_FILTER_V2,
+            'method': 'GET',
+            'sessionId': self.session_id,
+            'subcmd': subcmd,
+        })
+        datas = data.get('datas', {}) or {}
+        return datas.get('maclist', []), datas.get('macfilter', 'close')
+
+    async def _write_mac_list(self, maclist, macfilter, subcmd=0):
+        wifi = await self._post({
+            'cmd': CMD_WIFI_STATUS,
+            'method': 'GET',
+            'sessionId': self.session_id,
+        })
+        logger.info(f'WiFi status response: {wifi}')
+        if wifi.get('wifiStatus') != '1':
+            logger.warning('WiFi not ready, skipping MAC write')
+            return False
+        result = await self._post({
+            'cmd': CMD_MAC_FILTER_V2,
+            'method': 'POST',
+            'sessionId': self.session_id,
+            'token': self.token,
+            'subcmd': subcmd,
+            'success': True,
+            'datas': {
+                'maclist': maclist,
+                'macfilter': macfilter,
+            },
+        })
+        logger.info(f'MAC filter write response: {result}')
+        return result.get('success', False)
+
+    async def _get_firewall_rules(self) -> list:
+        data = await self._post({
+            'cmd': CMD_MAC_FILTER,
+            'method': 'GET',
+            'sessionId': self.session_id,
+        })
+        return data.get('datas', []) or []
+
+    async def _write_firewall_rules(self, rules: list) -> bool:
+        result = await self._post({
+            'cmd': CMD_MAC_FILTER,
+            'method': 'POST',
+            'sessionId': self.session_id,
+            'token': self.token,
+            'success': True,
+            'datas': rules,
+        })
+        logger.info(f'Firewall write response: {result}')
+
+        # Activate the blacklist — this is the "Save Rule" enable command
+        activate = await self._post({
+            'cmd': '06df6e71-3091-4fd3-98c4-759127d0f366',
+            'method': 'POST',
+            'sessionId': self.session_id,
+            'token': self.token,
+        })
+        logger.info(f'Blacklist activate response: {activate}')
+
+        return result.get('success', False)
+
     async def block_mac(self, mac: str) -> bool:
         try:
-            # Get current MAC list
-            data = await self._post({
-                'cmd': CMD_MAC_CTRL,
-                'method': 'GET',
-                'sessionId': self.session_id,
-                'subcmd': '1',
+            mac = mac.upper()
+            rules = await self._get_firewall_rules()
+            rules = [r for r in rules if r.get('mac', '').upper() != mac]
+            rules.append({
+                'enableRule': True,
+                'enableLink': False,
+                'ippro': 'IPV4',
+                'remark': 'Blocked-Unpaid',
+                'mac': mac,
             })
-            current = data.get('datas', {}).get('maclist', [])
-
-            # Add to blacklist if not already there
-            if not any(d['mac'] == mac for d in current):
-                current.append({'mac': mac, 'remarks': 'Blocked-Unpaid'})
-
-            await self._post({
-                'cmd': CMD_MAC_CTRL,
-                'method': 'POST',
-                'sessionId': self.session_id,
-                'token': self.token,
-                'subcmd': '1',
-                'success': True,
-                'datas': {
-                    'maclist': current,
-                    'macfilter': 'deny',
-                },
-            })
-            logger.info(f'Blocked MAC: {mac}')
+            result = await self._write_firewall_rules(rules)
+            logger.info(f'Blocked MAC: {mac} | result: {result}')
             return True
         except Exception as e:
             logger.error(f'Failed to block MAC {mac}: {e}')
@@ -161,56 +253,129 @@ class ZLTRouter:
 
     async def allow_mac(self, mac: str) -> bool:
         try:
-            # Get current MAC list
-            data = await self._post({
-                'cmd': CMD_MAC_CTRL,
-                'method': 'GET',
-                'sessionId': self.session_id,
-                'subcmd': '1',
+            mac = mac.upper()
+            rules = await self._get_firewall_rules()
+            rules = [r for r in rules if r.get('mac', '').upper() != mac]
+            rules.append({
+                'enableRule': True,
+                'enableLink': True,
+                'ippro': 'IPV4',
+                'remark': 'Paid',
+                'mac': mac,
             })
-            current = data.get('datas', {}).get('maclist', [])
-
-            # Remove from blacklist
-            current = [d for d in current if d['mac'] != mac]
-
-            await self._post({
-                'cmd': CMD_MAC_CTRL,
-                'method': 'POST',
-                'sessionId': self.session_id,
-                'token': self.token,
-                'subcmd': '1',
-                'success': True,
-                'datas': {
-                    'maclist': current,
-                    'macfilter': 'close',
-                },
-            })
-            logger.info(f'Allowed MAC: {mac}')
+            result = await self._write_firewall_rules(rules)
+            logger.info(f'Allowed MAC: {mac} | result: {result}')
             return True
         except Exception as e:
             logger.error(f'Failed to allow MAC {mac}: {e}')
             return False
 
-    async def set_speed(self, ip: str, download_kbps: int, upload_kbps: int) -> bool:
+    async def ensure_blacklist_mode(self):
         try:
-            await self._post({
-                'cmd': CMD_BANDWIDTH,
+            result = await self._post({
+                'cmd': CMD_MAC_MODE_V4,
                 'method': 'POST',
                 'sessionId': self.session_id,
                 'token': self.token,
                 'success': True,
-                'datas': [{
-                    'enableRule': True,
-                    'ippro': 'IPV4',
-                    'ip': ip,
-                    'maxSpeed': download_kbps,
-                }],
+                'datas': [{'enableRule': True, 'acceptAll': "1", 'ippro': 'IPV4'}],
             })
-            logger.info(f'Speed set for {ip}: {download_kbps} KB/s down')
-            return True
+            logger.info(f'Set whitelist mode response: {result}')
+        except Exception as e:
+            logger.error(f'Failed to set whitelist mode: {e}')
+
+    
+
+    async def enable_qos(self, total_up_mbps: int = 20, total_down_mbps: int = 20):
+        try:
+            result = await self._post({
+                'cmd': CMD_QOS,
+                'method': 'POST',
+                'sessionId': self.session_id,
+                'token': self.token,
+                'subcmd': 0,
+                'qosSw': '1',
+                'upBandwidth': total_up_mbps,
+                'downBandwidth': total_down_mbps,
+            })
+            logger.info(f'QoS enable response: {result}')
+        except Exception as e:
+            logger.error(f'Failed to enable QoS: {e}')
+
+    async def set_speed(self, ip: str, download_kbps: int, upload_kbps: int) -> bool:
+        try:
+            await self.enable_qos()
+            await asyncio.sleep(0.5)
+
+            data = {}
+            for attempt in range(3):
+                try:
+                    data = await self._post({
+                        'cmd': CMD_QOS,
+                        'method': 'GET',
+                        'sessionId': self.session_id,
+                        'subcmd': 1,
+                    })
+                    break
+                except Exception as e:
+                    logger.warning(f'QoS GET attempt {attempt+1} failed: {e}')
+                    await asyncio.sleep(1)
+            current = data.get('datas', []) or []
+            current = [d for d in current if d.get('ip') != ip]
+            current.append({
+                'ip': ip,
+                'port': '',
+                'maxUpBandwidth': max(1, upload_kbps // 1000),
+                'maxDownBandwidth': max(1, download_kbps // 1000),
+            })
+
+            write_payload = {
+                'cmd': CMD_QOS,
+                'method': 'POST',
+                'sessionId': self.session_id,
+                'token': self.token,
+                'subcmd': 1,
+                'datas': current,
+            }
+            logger.info(f'QoS write payload for {ip}: {write_payload}')
+
+            result = await self._post(write_payload)
+            logger.info(f'Speed response for {ip}: {result}')
+            return bool(result.get('success'))
         except Exception as e:
             logger.error(f'Failed to set speed for {ip}: {e}')
-            return False
+            # Disconnect might mean rule was applied — verify by reading back
+            try:
+                verify = await self._post({
+                    'cmd': CMD_QOS,
+                    'method': 'GET',
+                    'sessionId': self.session_id,
+                    'subcmd': 1,
+                })
+                logger.info(f'QoS verify after disconnect: {verify}')
+                return True
+            except Exception as e2:
+                logger.error(f'Verify also failed: {e2}')
+                return False
+
+    async def reboot(self):
+        try:
+            token_resp = await self.client.post(
+                f'{self.base}/cgi-bin/http.cgi',
+                json={'cmd': CMD_TOKEN_REFRESH, 'method': 'GET', 'sessionId': self.session_id},
+            )
+            self.token = token_resp.json().get('token', self.token)
+
+            result = await self._post({
+                'cmd': CMD_REBOOT,
+                'method': 'POST',
+                'sessionId': self.session_id,
+                'token': self.token,
+                'rebootType': 1,
+            })
+            logger.info(f'Reboot response: {result}')
+        except Exception as e:
+            logger.error(f'Reboot failed: {e}')
 
     async def close(self):
         await self.client.aclose()
@@ -274,18 +439,13 @@ def update_dnsmasq(paid_ips: set):
 
 async def enforce_access(router: ZLTRouter, devices: list):
     """
-    For each connected device:
-    - Whitelisted → always allow, real DNS
-    - Paid active session → allow MAC, real DNS, apply speed
-    - Unpaid → block MAC, DNS redirects to portal automatically
+    Builds one complete firewall rules list and writes it once per cycle.
+    This prevents race conditions and router instability.
     """
     db = get_db()
     now = utcnow()
+    new_rules = []
     paid_ips = set()
-
-    # Always give whitelisted devices real DNS
-    for mac in WHITELISTED_MACS:
-        paid_ips.add(mac)
 
     for device in devices:
         mac = device.get('mac', '').lower()
@@ -295,19 +455,40 @@ async def enforce_access(router: ZLTRouter, devices: list):
             continue
 
         try:
-            # Whitelisted — never block
+            # WHITELISTED_MACS in env — never block
             if mac in WHITELISTED_MACS:
-                logger.info(f'Whitelisted device, skipping: {mac}')
-                await router.allow_mac(mac)
-                if ip:
-                    paid_ips.add(ip)
+                logger.info(f'Env whitelisted: {mac}')
+                new_rules.append({
+                    'enableRule': True,
+                    'enableLink': True,
+                    'ippro': 'IPV4',
+                    'remark': 'Admin',
+                    'mac': mac.upper(),
+                })
+                paid_ips.add(ip)
                 db.table('devices').update({
                     'status': 'allowed',
                     'ip_address': ip,
                 }).eq('mac_address', mac).execute()
                 continue
 
-            # Check for active session
+            # Check if admin whitelisted via dashboard
+            device_result = db.table('devices').select('status').eq('mac_address', mac).limit(1).execute()
+            device_status = device_result.data[0].get('status') if device_result.data else None
+
+            if device_status == 'whitelisted':
+                logger.info(f'Dashboard whitelisted: {mac}')
+                new_rules.append({
+                    'enableRule': True,
+                    'enableLink': True,
+                    'ippro': 'IPV4',
+                    'remark': 'Whitelisted',
+                    'mac': mac.upper(),
+                })
+                paid_ips.add(ip)
+                continue
+
+            # Check for active paid session
             result = db.table('sessions').select(
                 '*, packages(download_kbps, upload_kbps)'
             ).eq('mac_address', mac).eq('status', 'active').gt(
@@ -317,9 +498,15 @@ async def enforce_access(router: ZLTRouter, devices: list):
             if result.data:
                 session = result.data[0]
                 pkg = session.get('packages', {})
-                await router.allow_mac(mac)
-                if ip:
-                    paid_ips.add(ip)
+                logger.info(f'Paid session: {mac}')
+                new_rules.append({
+                    'enableRule': True,
+                    'enableLink': True,
+                    'ippro': 'IPV4',
+                    'remark': 'Paid',
+                    'mac': mac.upper(),
+                })
+                paid_ips.add(ip)
                 if ip and pkg:
                     await router.set_speed(
                         ip,
@@ -332,7 +519,14 @@ async def enforce_access(router: ZLTRouter, devices: list):
                 }).eq('mac_address', mac).execute()
 
             else:
-                await router.block_mac(mac)
+                logger.info(f'Blocking unpaid: {mac}')
+                new_rules.append({
+                    'enableRule': True,
+                    'enableLink': False,
+                    'ippro': 'IPV4',
+                    'remark': 'Blocked-Unpaid',
+                    'mac': mac.upper(),
+                })
                 db.table('devices').update({
                     'status': 'blocked',
                     'ip_address': ip,
@@ -340,8 +534,21 @@ async def enforce_access(router: ZLTRouter, devices: list):
 
         except Exception as e:
             logger.error(f'Enforcement error for {mac}: {e}')
+            new_rules.append({
+                'enableRule': True,
+                'enableLink': False,
+                'ippro': 'IPV4',
+                'remark': 'Blocked-Error',
+                'mac': mac.upper(),
+            })
 
-    # Update dnsmasq so paid devices bypass the portal redirect
+    # Write ALL rules in ONE single call — much lighter on router
+    try:
+        await router._write_firewall_rules(new_rules)
+        logger.info(f'Firewall updated: {len(new_rules)} rules written')
+    except Exception as e:
+        logger.error(f'Failed to write firewall rules: {e}')
+
     update_dnsmasq(paid_ips)
 
 
@@ -362,23 +569,40 @@ async def main():
 
     router = ZLTRouter()
 
+    # Login once at startup
+    logged_in = await router.login()
+    if not logged_in:
+        logger.error('Initial login failed. Exiting.')
+        return
+
+    login_cycle = 0  # re-login every 60 cycles (~5 mins)
+
     while True:
         try:
-            # Login (re-login every cycle in case session expired)
-            logged_in = await router.login()
+            # Re-login every 60 cycles to refresh session
+            if login_cycle >= 60:
+                logged_in = await router.login()
+                if not logged_in:
+                    logger.warning('Re-login failed, keeping existing session.')
+                login_cycle = 0
 
-            if logged_in:
-                devices = await router.get_connected_devices()
-                logger.info(f'Connected devices: {len(devices)}')
+            devices = await router.get_connected_devices()
+            logger.info(f'Connected devices: {len(devices)}')
 
-                if devices:
-                    await sync_devices(router, devices)
-                    await enforce_access(router, devices)
-            else:
-                logger.warning('Could not login to router. Retrying next cycle.')
+            if devices:
+                await sync_devices(router, devices)
+                await enforce_access(router, devices)
+
+            login_cycle += 1
 
         except Exception as e:
             logger.error(f'Agent cycle error: {e}')
+            # Try re-login on error
+            try:
+                await router.login()
+                login_cycle = 0
+            except Exception:
+                pass
 
         await asyncio.sleep(POLL_INTERVAL)
 

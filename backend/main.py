@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
         logger.info("Keepalive task started.")
 
     logger.info(f"Environment : {settings.ENVIRONMENT}")
-    logger.info(f"Daraja mode : {settings.DARAJA_ENV}")
+    logger.info(f"Payment     : Paystack live")
 
     yield
 

@@ -52,26 +52,18 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:REPLACE_WITH_PASSWORD@db.REPLACE.supabase.co:5432/postgres"
 
     # -------------------------------------------------------------------------
-    # DARAJA API — Safaricom M-Pesa
+    # PAYSTACK — M-Pesa STK Push
     # -------------------------------------------------------------------------
-    DARAJA_ENV: Literal["sandbox", "production"] = "sandbox"
+    # Get your secret key from: https://dashboard.paystack.com/#/settings/developers
+    PAYSTACK_SECRET_KEY: str = "REPLACE_WITH_YOUR_PAYSTACK_SECRET_KEY"
 
-    # Sandbox base URL
-    DARAJA_SANDBOX_URL: str = "https://sandbox.safaricom.co.ke"
-    # Production base URL
-    DARAJA_PRODUCTION_URL: str = "https://api.safaricom.co.ke"
+    # Paystack signs webhooks with your secret key via HMAC-SHA512
+    # This is the same value as PAYSTACK_SECRET_KEY
+    PAYSTACK_WEBHOOK_SECRET: str = "REPLACE_WITH_YOUR_PAYSTACK_SECRET_KEY"
 
-    DARAJA_CONSUMER_KEY: str = "REPLACE_WITH_DARAJA_CONSUMER_KEY"
-    DARAJA_CONSUMER_SECRET: str = "REPLACE_WITH_DARAJA_CONSUMER_SECRET"
-
-    # STK Push settings
-    DARAJA_SHORTCODE: str = "REPLACE_WITH_YOUR_TILL_OR_PAYBILL_NUMBER"
-    DARAJA_TILL_NUMBER: str = "REPLACE_WITH_YOUR_TILL_NUMBER"   # PartyB for CustomerBuyGoodsOnline
-    DARAJA_PASSKEY: str = "REPLACE_WITH_YOUR_LIPA_NA_MPESA_PASSKEY"
-
-    # The publicly accessible URL Daraja will POST the payment result to
-    # Must be HTTPS — your Render backend URL
-    DARAJA_CALLBACK_URL: str = "https://REPLACE_WITH_YOUR_RENDER_URL.onrender.com/api/payments/callback"
+    # The publicly accessible URL Paystack will POST payment events to
+    # Must be HTTPS — set this in your Paystack dashboard under Settings → API
+    PAYSTACK_WEBHOOK_URL: str = "https://vidatech-wifi.onrender.com/payments/webhook"
 
     # -------------------------------------------------------------------------
     # ROUTER — ZLT X17U
@@ -113,11 +105,7 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     # INTERNAL
     # -------------------------------------------------------------------------
-    @property
-    def DARAJA_BASE_URL(self) -> str:
-        if self.DARAJA_ENV == "production":
-            return self.DARAJA_PRODUCTION_URL
-        return self.DARAJA_SANDBOX_URL
+    
 
     @property
     def IS_PRODUCTION(self) -> bool:

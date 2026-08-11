@@ -11,7 +11,7 @@ from typing import Optional
 from auth.dependencies import require_admin
 from db import get_db
 from utils import normalise_phone, utcnow, hours_from_now
-from payments.daraja import initiate_stk_push
+from payments.paystack import initiate_stk_push, verify_webhook_signature
 
 logger = logging.getLogger("vidatech.payments")
 router = APIRouter()
@@ -35,7 +35,7 @@ class PaymentInitiate(BaseModel):
 async def initiate_payment(body: PaymentInitiate, request: Request):
     """
     Customer initiates payment.
-    Triggers M-Pesa STK push to their phone.
+    Triggers M-Pesa STK push to their phone via Paystack.
     """
     db = get_db()
 
@@ -50,7 +50,7 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
 
     package = pkg_result.data
 
-    ## Detect MAC from IP if not provided
+    # Detect MAC from IP if not provided
     client_ip = request.client.host
     mac_address = body.mac_address
     if not mac_address or mac_address == "00:00:00:00:00:00":
@@ -71,9 +71,9 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
 
     payment = payment_result.data[0]
 
-    # Initiate STK push
+    # Initiate STK push via Paystack
     try:
-        checkout_id = await initiate_stk_push(
+        reference = await initiate_stk_push(
             phone=phone,
             amount=int(package["price_kes"]),
             account_ref=f"VIDATECH-{payment['id'][:8].upper()}",
@@ -87,12 +87,12 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
         }).eq("id", payment["id"]).execute()
         raise HTTPException(status_code=502, detail="Payment initiation failed. Please try again.")
 
-    # Save checkout ID
+    # Save Paystack reference (replaces mpesa_checkout_id)
     db.table("payments").update({
-        "mpesa_checkout_id": checkout_id,
+        "mpesa_checkout_id": reference,       # reusing existing column — rename later if desired
     }).eq("id", payment["id"]).execute()
 
-    # Update device record with current IP
+    # Update device record
     if mac_address and mac_address != "00:00:00:00:00:00":
         db.table("devices").upsert({
             "mac_address": mac_address.lower(),
@@ -105,65 +105,70 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
     return {
         "message": "Payment prompt sent to your phone. Enter your M-Pesa PIN.",
         "payment_id": payment["id"],
-        "checkout_id": checkout_id,
+        "reference": reference,
         "amount": package["price_kes"],
         "package": package["name"],
     }
 
 
-@router.post("/callback")
-async def daraja_callback(request: Request):
+@router.post("/webhook")
+async def paystack_webhook(request: Request):
     """
-    Safaricom Daraja calls this endpoint after payment completes or fails.
-    This URL must be publicly accessible (your Render URL).
+    Paystack posts to this endpoint after payment completes or fails.
+    URL: https://vidatech-wifi.onrender.com/payments/webhook
     """
     db = get_db()
-    body = await request.json()
 
-    try:
-        stk = body["Body"]["stkCallback"]
-        checkout_id   = stk["CheckoutRequestID"]
-        result_code   = stk["ResultCode"]
-        result_desc   = stk["ResultDesc"]
-    except (KeyError, TypeError):
-        logger.error(f"Malformed Daraja callback: {body}")
-        return {"ResultCode": 0, "ResultDesc": "Accepted"}
+    raw_body = await request.body()
+    signature = request.headers.get("x-paystack-signature", "")
+
+    if not verify_webhook_signature(raw_body, signature):
+        logger.warning("Paystack webhook signature verification failed.")
+        raise HTTPException(status_code=401, detail="Invalid signature.")
+
+    body = await request.json() if not raw_body else __import__("json").loads(raw_body)
+    event = body.get("event")
+    data  = body.get("data", {})
+
+    # Only handle charge events
+    if event not in ("charge.success", "charge.failed"):
+        return {"status": "ignored"}
+
+    reference = data.get("reference")
+    if not reference:
+        logger.error("Paystack webhook missing reference.")
+        return {"status": "ignored"}
 
     # Find payment record
-    pay_result = db.table("payments").select("*, packages(*)").eq("mpesa_checkout_id", checkout_id).single().execute()
-
+    pay_result = db.table("payments").select("*, packages(*)").eq("mpesa_checkout_id", reference).single().execute()
     if not pay_result.data:
-        logger.warning(f"Callback for unknown checkout_id: {checkout_id}")
-        return {"ResultCode": 0, "ResultDesc": "Accepted"}
+        logger.warning(f"Webhook for unknown reference: {reference}")
+        return {"status": "ignored"}
 
     payment = pay_result.data
     package = payment["packages"]
 
-    if result_code != 0:
-        # Payment failed
+    if event == "charge.failed":
         db.table("payments").update({
             "status": "failed",
-            "failure_reason": result_desc,
+            "failure_reason": data.get("gateway_response", "Payment failed"),
         }).eq("id", payment["id"]).execute()
+        logger.warning(f"Payment failed for {payment['phone']}: {data.get('gateway_response')}")
+        return {"status": "ok"}
 
-        logger.warning(f"Payment failed for {payment['phone']}: {result_desc}")
-        return {"ResultCode": 0, "ResultDesc": "Accepted"}
-
-    # Payment successful — extract transaction code
-    items = {i["Name"]: i["Value"] for i in stk.get("CallbackMetadata", {}).get("Item", [])}
-    txn_code = items.get("MpesaReceiptNumber")
-    amount   = items.get("Amount")
+    # charge.success
+    txn_code    = data.get("id") or reference
+    amount_kes  = int(data.get("amount", 0)) // 100     # convert back from kobo
 
     db.table("payments").update({
         "status": "confirmed",
-        "mpesa_transaction_code": txn_code,
+        "mpesa_transaction_code": str(txn_code),
         "confirmed_at": utcnow().isoformat(),
     }).eq("id", payment["id"]).execute()
 
-    # Get MAC from payment record
     mac_address = payment.get("mac_address", "00:00:00:00:00:00")
 
-    # Check for MAC spoofing — if another device is already using this MAC flag it
+    # MAC spoofing check
     existing = db.table("sessions").select("id, ip_address").eq(
         "mac_address", mac_address
     ).eq("status", "active").execute()
@@ -180,12 +185,12 @@ async def daraja_callback(request: Request):
                 }).execute()
                 logger.warning(f"MAC spoofing detected: {mac_address}")
 
-    # Get device record
+    # Get device
     device_result = db.table("devices").select("*").eq("mac_address", mac_address).limit(1).execute()
     device = device_result.data[0] if device_result.data else None
 
     # Create session
-    session_data = {
+    session_result = db.table("sessions").insert({
         "payment_id": payment["id"],
         "package_id": package["id"],
         "mac_address": mac_address,
@@ -193,25 +198,23 @@ async def daraja_callback(request: Request):
         "status": "active",
         "started_at": utcnow().isoformat(),
         "expires_at": hours_from_now(package["duration_hours"]).isoformat(),
-    }
-
-    session_result = db.table("sessions").insert(session_data).execute()
+    }).execute()
     session = session_result.data[0]
 
-    # Mark device as allowed
+    # Mark device allowed
     if device:
         db.table("devices").update({"status": "allowed"}).eq("id", device["id"]).execute()
 
     # Notify admin
     db.table("notifications").insert({
         "title": "New Payment Received",
-        "body": f"KES {amount} from {payment['phone']} for {package['name']}. Receipt: {txn_code}",
+        "body": f"KES {amount_kes} from {payment['phone']} for {package['name']}. Ref: {txn_code}",
         "type": "payment",
         "metadata": {"payment_id": payment["id"], "session_id": session["id"]},
     }).execute()
 
     logger.info(f"Payment confirmed: {txn_code} | {payment['phone']} | {package['name']}")
-    return {"ResultCode": 0, "ResultDesc": "Accepted"}
+    return {"status": "ok"}
 
 
 @router.get("/")

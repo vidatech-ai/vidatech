@@ -1,0 +1,1 @@
+import{aD as s}from"./index.8746195b.js";import{$ as t,B as e,C as a,D as n,f as o}from"./element-plus.fa7f29b8.js";const m={__name:"changePassword",setup:m=>(m,r)=>{const f=t("my-setting-body");return e(),a(f,{title:m.$t("menu_changePasswd")},{content:n(()=>[o(s)]),_:1},8,["title"])}};export{m as default};

@@ -1,0 +1,1 @@
+import{r as e,c as a}from"./element-plus.fa7f29b8.js";function u(){const u=e(1),l=e(5),r=a(()=>e=>{let a=l.value*(u.value-1);return e.slice(a,a+l.value)});return{h_currentPage:u,h_pageSize:l,h_showData:r,h_clickCurrentIndex:e=>e+(u.value-1)*l.value,h_handleSizeChange:e=>{l.value=e}}}export{u};

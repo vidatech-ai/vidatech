@@ -712,7 +712,8 @@ function toggleSidebar() {
 }
 
 // Close modal on overlay click
-document.getElementById('packageModal').addEventListener('click', function(e) {
+const _pkgModal = document.getElementById('packageModal');
+if (_pkgModal) _pkgModal.addEventListener('click', function(e) {
   if (e.target === this) closePackageModal();
 });
 

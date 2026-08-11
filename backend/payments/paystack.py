@@ -17,6 +17,13 @@ settings = get_settings()
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 
 
+def _to_paystack_phone(phone: str) -> str:
+    """Convert 2547XXXXXXXX → 07XXXXXXXX for Paystack Mobile Money."""
+    if phone.startswith("254"):
+        return "0" + phone[3:]
+    return phone
+
+
 async def initiate_stk_push(
     phone: str,
     amount: int,
@@ -33,7 +40,7 @@ async def initiate_stk_push(
         "email": f"{phone}@vidatech.wifi",          # Paystack requires email; phone-based placeholder
         "currency": "KES",
         "mobile_money": {
-            "phone": phone,
+            "phone": _to_paystack_phone(phone),
             "provider": "mpesa",
         },
         "reference": account_ref,

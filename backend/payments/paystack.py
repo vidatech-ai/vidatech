@@ -18,9 +18,7 @@ PAYSTACK_BASE_URL = "https://api.paystack.co"
 
 
 def _to_paystack_phone(phone: str) -> str:
-    """Convert 2547XXXXXXXX → 07XXXXXXXX for Paystack Mobile Money."""
-    if phone.startswith("254"):
-        return "0" + phone[3:]
+    """Paystack Mobile Money expects 2547XXXXXXXX — already what normalise_phone returns."""
     return phone
 
 

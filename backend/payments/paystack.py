@@ -37,7 +37,7 @@ async def initiate_stk_push(
     # Paystack expects amount in kobo/cents — KES uses integer shillings so multiply by 100
     payload = {
         "amount": str(amount * 100),
-        "email": f"{phone}@vidatech.wifi",          # Paystack requires email; phone-based placeholder
+        "email": f"{phone}@vidatech.com",           # Paystack requires valid email; phone-based placeholder
         "currency": "KES",
         "mobile_money": {
             "phone": _to_paystack_phone(phone),

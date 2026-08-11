@@ -43,42 +43,6 @@ body {
   padding: 0 24px 60px;
 }
 
-@media (max-width: 520px) {
-  .hero { min-height: auto; padding: 80px 16px 32px; }
-  .hero-stats { display: none; }
-  .scroll-hint { display: none; }
-  .how-section { display: none; }
-  .hero-badge { font-size: 10px; padding: 4px 12px; margin-bottom: 16px; }
-  .hero-headline { font-size: 26px; margin-bottom: 12px; }
-  .hero-sub { font-size: 13px; margin-bottom: 24px; }
-  .hero-cta { gap: 10px; }
-  .btn-hero, .btn-hero-ghost { padding: 12px 24px; font-size: 14px; }
-  .packages-section { padding: 24px 12px; }
-  .section-headline { font-size: 20px; margin-bottom: 8px; }
-  .section-sub { font-size: 12px; margin-bottom: 24px; }
-  .packages-row { grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-  .pkg-big { padding: 16px 12px; border-radius: 12px; width: 100%; min-width: 0; }
-  .pkg-big-icon { font-size: 20px; margin-bottom: 8px; }
-  .pkg-big-name { font-size: 14px; margin-bottom: 4px; }
-  .pkg-big-price { font-size: 20px; margin-bottom: 2px; }
-  .pkg-big-duration { font-size: 11px; margin-bottom: 12px; }
-  .pkg-big-features { display: none; }
-  .pkg-popular-badge { font-size: 8px; padding: 2px 8px; }
-  .checkSection { padding: 24px 12px; }
-  .pay-section { padding: 24px 12px; }
-  .pay-title { font-size: 18px; }
-  .pay-sub { font-size: 12px; margin-bottom: 16px; }
-  .pay-selected-pkg { padding: 12px 14px; margin-bottom: 14px; }
-  .field input { padding: 12px 14px; font-size: 15px; }
-  .btn-primary { padding: 14px; font-size: 15px; }
-  .portal-footer { font-size: 11px; padding: 16px; }
-  .session-timer { font-size: 36px; }
-  .session-meta { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .session-meta-item { padding: 10px; }
-  .session-meta-label { font-size: 10px; }
-  .session-meta-value { font-size: 13px; }
-}
-
 .hero-bg {
   position: absolute;
   inset: 0;
@@ -501,7 +465,8 @@ body {
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
 
 /* ── HOW IT WORKS ───────────────────────────────── */
-.how-section {
+.how-section,
+.check-section {
   padding: 80px 24px;
   background: var(--bg);
 }
@@ -543,6 +508,80 @@ body {
 }
 
 .how-step-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+/* ── SECTION IMAGES ──────────────────────────────── */
+.how-image-wrap {
+  max-width: 900px;
+  margin: 0 auto 48px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  position: relative;
+}
+.how-image-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7,13,26,0.1) 0%, rgba(7,13,26,0.6) 100%);
+}
+.how-image {
+  display: block;
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  filter: saturate(1.1) brightness(0.85);
+}
+
+.check-image-wrap {
+  max-width: 320px;
+  margin: 0 auto 24px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.check-image {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  filter: saturate(1.1) brightness(0.9);
+}
+
+/* ── SCROLL-REVEAL IMAGE BANDS (between sections) ─── */
+.scroll-image-band {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  overflow: hidden;
+}
+.scroll-image-band img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.1) brightness(0.55);
+}
+.scroll-image-band::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7,13,26,0.55) 0%, rgba(7,13,26,0.15) 30%, rgba(7,13,26,0.15) 70%, rgba(7,13,26,0.75) 100%);
+}
+.scroll-image-caption {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  letter-spacing: -0.3px;
+  padding: 0 24px;
+  width: 100%;
+}
 
 /* ── SESSION ACTIVE ─────────────────────────────── */
 .session-active { display: none; text-align: center; }
@@ -703,6 +742,7 @@ body {
 .page.active { display: block; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.stats-grid-3 { grid-template-columns: repeat(3, 1fr); }
 
 .stat-card {
   background: var(--surface);
@@ -731,9 +771,14 @@ body {
 .section-title { font-family: var(--font-head); font-size: 15px; font-weight: 600; color: var(--text); }
 .section-count { font-size: 12px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; padding: 3px 10px; }
 
+/* Wrap any <table> in <div class="table-scroll"> so wide admin tables
+   scroll horizontally within their card instead of breaking page layout
+   on narrow Android screens. */
+.table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
 table { width: 100%; border-collapse: collapse; }
-th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 20px; text-align: left; background: var(--surface2); border-bottom: 1px solid var(--border); }
-td { padding: 13px 20px; font-size: 13px; color: var(--subtle); border-bottom: 1px solid rgba(30,45,69,0.5); vertical-align: middle; }
+th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 20px; text-align: left; background: var(--surface2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 13px 20px; font-size: 13px; color: var(--subtle); border-bottom: 1px solid rgba(30,45,69,0.5); vertical-align: middle; white-space: nowrap; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(14,165,233,0.03); }
 
@@ -801,6 +846,8 @@ tr:hover td { background: rgba(14,165,233,0.03); }
   padding: 36px;
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
   position: relative;
   box-shadow: 0 32px 64px rgba(0,0,0,0.5);
 }
@@ -847,6 +894,7 @@ tr:hover td { background: rgba(14,165,233,0.03); }
   justify-content: center;
   padding: 24px;
   z-index: 1000;
+  overflow-y: auto;
 }
 
 .login-card {
@@ -908,8 +956,8 @@ tr:hover td { background: rgba(14,165,233,0.03); }
   .packages-row { grid-template-columns: 1fr 1fr; }
   .how-steps { grid-template-columns: 1fr; }
   .two-col { grid-template-columns: 1fr; }
-  .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
-  .sidebar.open { transform: translateX(0); }
+  .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; width: 260px; }
+  .sidebar.open { transform: translateX(0); box-shadow: 8px 0 24px rgba(0,0,0,0.4); }
   .admin-content { margin-left: 0; }
   .topbar { padding: 0 16px; }
   .page { padding: 16px; }
@@ -930,18 +978,30 @@ tr:hover td { background: rgba(14,165,233,0.03); }
   .stat-value { font-size: 22px; }
   .modal { padding: 24px 20px; }
   .hamburger { display: flex; }
+  .scroll-image-band { height: 220px; }
+  .scroll-image-caption { font-size: 18px; }
+  .section-header { flex-wrap: wrap; gap: 10px; }
 }
 
+/* Android phones are used in portrait almost exclusively — this is the
+   breakpoint that matters most. Every admin feature (nav, tables, modal,
+   stats, tabs, login) is tuned here so nothing is cut off or unreachable. */
 @media (max-width: 520px) {
+  /* Portal */
   .hero { min-height: auto; padding: 80px 16px 32px; }
   .hero-stats { display: none; }
   .scroll-hint { display: none; }
   .how-section { display: none; }
+  .check-section { padding: 32px 16px; }
+  .check-image-wrap { max-width: 100%; margin-bottom: 20px; }
+  .check-image { height: 130px; }
+  .scroll-image-band { height: 180px; }
+  .scroll-image-caption { font-size: 16px; bottom: 14px; }
   .hero-badge { font-size: 10px; padding: 4px 12px; margin-bottom: 16px; }
   .hero-headline { font-size: 26px; margin-bottom: 12px; letter-spacing: -1px; }
   .hero-sub { font-size: 13px; margin-bottom: 24px; }
   .hero-cta { flex-direction: column; align-items: center; gap: 10px; }
-  .btn-hero, .btn-hero-ghost { padding: 12px 24px; font-size: 14px; }
+  .btn-hero, .btn-hero-ghost { width: 100%; padding: 14px 24px; font-size: 14px; }
   .packages-section { padding: 24px 12px; }
   .section-headline { font-size: 20px; margin-bottom: 8px; }
   .section-sub { font-size: 12px; margin-bottom: 24px; }
@@ -958,23 +1018,53 @@ tr:hover td { background: rgba(14,165,233,0.03); }
   .pay-title { font-size: 18px; }
   .pay-sub { font-size: 12px; margin-bottom: 16px; }
   .pay-selected-pkg { padding: 12px 14px; margin-bottom: 14px; }
-  .field input { padding: 12px 14px; font-size: 15px; }
+  .field input { padding: 12px 14px; font-size: 16px; }
   .btn-primary { padding: 14px; font-size: 15px; }
-  .portal-footer { font-size: 11px; padding: 16px; }
+  .portal-footer { font-size: 11px; padding: 16px; line-height: 1.8; }
   .session-timer { font-size: 36px; }
   .session-meta { grid-template-columns: 1fr 1fr; gap: 8px; }
   .session-meta-item { padding: 10px; }
+
+  /* Admin: stat cards */
   .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stats-grid-3 { grid-template-columns: 1fr 1fr; }
   .stat-card { padding: 14px; }
   .stat-value { font-size: 20px; }
   .stat-label { font-size: 11px; }
-  .tab-bar { flex-wrap: wrap; }
-  .tab-btn { font-size: 11px; padding: 6px 12px; }
+
+  /* Admin: sidebar full-width drawer on very small screens */
+  .sidebar { width: 82vw; max-width: 300px; }
+
+  /* Admin: tabs wrap and stay tappable */
+  .tab-bar { flex-wrap: wrap; width: 100%; }
+  .tab-btn { font-size: 11px; padding: 8px 12px; flex: 1 1 auto; text-align: center; }
+
+  /* Admin: tables scroll inside their card; sticky first column keeps
+     row identity visible while scrolling horizontally */
   th { font-size: 10px; padding: 8px 10px; }
   td { padding: 10px; font-size: 12px; }
-  .action-btn { font-size: 11px; padding: 4px 8px; }
+  th:first-child, td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 1;
+  }
+  th:first-child { background: var(--surface2); }
+
+  .action-btn { font-size: 11px; padding: 6px 10px; }
   .section-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .section-header > div[style*="display:flex"] { width: 100%; }
   .topbar { height: 52px; }
   .topbar-title { font-size: 14px; }
   #topbarTime { display: none; }
+
+  /* Admin: modal fits small viewports without clipping fields */
+  .modal { padding: 20px 16px; border-radius: 14px; max-height: 85vh; }
+  .modal-title { font-size: 18px; }
+  .modal-actions { flex-direction: column; }
+
+  /* Admin: login card fits without overflow, inputs sized for touch */
+  .login-card { padding: 32px 24px; }
+  .login-title { font-size: 20px; }
+  #adminPhone, #adminPassword { font-size: 16px; }
 }

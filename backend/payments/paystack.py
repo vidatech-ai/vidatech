@@ -60,11 +60,13 @@ async def initiate_stk_push(
             },
             timeout=30,
         )
+        if response.status_code >= 400:
+            logger.error(f"Paystack raw error: {response.text}")
         response.raise_for_status()
         data = response.json()
 
     if not data.get("status"):
-        raise Exception(f"Paystack error: {data.get('message', 'Unknown error')}")
+        raise Exception(f"Paystack error: {data.get('message', 'Unknown error')} | full response: {data}")
 
     reference = data["data"]["reference"]
     logger.info(f"STK push initiated: {reference} → {phone}")

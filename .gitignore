@@ -38,3 +38,5 @@ Thumbs.db
 .coverage
 htmlcov/
 .pytest_cache/
+router_js/
+router_js_strings.txt

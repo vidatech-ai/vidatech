@@ -34,7 +34,7 @@ async def initiate_stk_push(
     """
     # Paystack expects amount in kobo/cents — KES uses integer shillings so multiply by 100
     payload = {
-        "amount": amount * 100,
+        "amount": str(amount * 100),
         "email": f"{phone}@vidatech.wifi",          # Paystack requires email; phone-based placeholder
         "currency": "KES",
         "mobile_money": {
@@ -48,6 +48,7 @@ async def initiate_stk_push(
         },
     }
 
+    logger.info(f"Paystack charge payload: {payload}")
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{PAYSTACK_BASE_URL}/charge",

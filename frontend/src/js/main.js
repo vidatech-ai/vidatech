@@ -1,6 +1,10 @@
 // ─── CONFIG & SHARED HELPERS ────────────────────────
 const API = 'https://vidatech-wifi.onrender.com';
 let token = localStorage.getItem('vt_token');
+let selectedPkg = { id: null, name: '', hours: 0, speed: '', price: 0 };
+let sessionInterval = null;
+let allDevices = [];
+let activeMacs = new Set();
 
 function authHeaders() {
   return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };

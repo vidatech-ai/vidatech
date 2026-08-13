@@ -47,7 +47,12 @@ async def my_mac(request: Request):
         request.headers.get("x-forwarded-for", "").split(",")[0].strip()
         or request.client.host
     )
+    # Try exact IP match first
     result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
+    if result.data:
+        return {"mac_address": result.data[0]["mac_address"]}
+    # Fallback: return most recently seen device
+    result = db.table("devices").select("mac_address").order("last_seen_at", desc=True).limit(1).execute()
     if not result.data:
         return {"mac_address": None}
     return {"mac_address": result.data[0]["mac_address"]}

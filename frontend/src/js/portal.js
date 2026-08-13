@@ -1,9 +1,43 @@
 // ─── PORTAL — PACKAGE SELECTION ─────────────────────
-// Read MAC injected by nodogsplash from URL
-const _urlParams = new URLSearchParams(window.location.search);
-const _clientMac = _urlParams.get('mac') || '00:00:00:00:00:00';
-const _clientIp  = _urlParams.get('ip')  || '';
-const _ndsToken  = _urlParams.get('tok') || '';
+// MAC is no longer read from the URL (nodogsplash splashpage substitution
+// doesn't work reliably). Instead we ask the router directly via a CGI
+// endpoint that reads /proc/net/arp for the requesting client's IP.
+const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1:8080/cgi-bin/getmac';
+
+let _clientMac = null;
+let _macLookupFailed = false;
+
+async function fetchClientMac(retries = 5, delayMs = 1500) {
+  const payBtn = document.getElementById('payBtn');
+  if (payBtn) payBtn.disabled = true;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(ROUTER_MAC_ENDPOINT, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.mac) {
+        _clientMac = data.mac.toLowerCase();
+        _macLookupFailed = false;
+        if (payBtn) payBtn.disabled = false;
+        return;
+      }
+    } catch (e) {
+      // router unreachable this attempt — retry
+    }
+    // ARP entry may not exist yet right after association; wait and retry
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+
+  // All retries exhausted — do not silently fall back to a dummy MAC.
+  _clientMac = null;
+  _macLookupFailed = true;
+  if (payBtn) {
+    payBtn.disabled = true;
+    payBtn.textContent = 'Reconnect WiFi and retry';
+  }
+  console.error('Could not resolve client MAC from router after retries.');
+}
+fetchClientMac();
 
 function initPortalPackages() {
   document.querySelectorAll('.pkg-big').forEach(card => {
@@ -80,6 +114,15 @@ async function handlePayment() {
   const phone = document.getElementById('phoneInput').value.trim();
   if (!phone) { alert('Enter your M-Pesa number.'); return; }
   if (!selectedPkg.id) { alert('Select a package first.'); return; }
+
+  if (!_clientMac) {
+    // Give it one more shot rather than sending a dummy MAC to the backend
+    await fetchClientMac(3, 1000);
+    if (!_clientMac) {
+      alert('Could not identify your device on the network. Please reconnect to WiFi and try again.');
+      return;
+    }
+  }
 
   const btn = document.getElementById('payBtn');
   btn.disabled = true;
@@ -262,4 +305,3 @@ async function api(path, opts) {
   if (r.status === 204) return {};
   return r.json();
 }
-

@@ -13,12 +13,10 @@ async function fetchClientMac(retries = 5, delayMs = 1500) {
   if (payBtn) payBtn.disabled = true;
   for (let i = 0; i < retries; i++) {
     try {
-      const myIp = await fetch('http://192.168.2.1/cgi-bin/getmac?ip=detect', { cache: 'no-store' })
-  .then(r => r.json()).then(d => d.ip).catch(() => null);
-const res = await fetch(`${ROUTER_MAC_ENDPOINT}?ip=${myIp}`, { cache: 'no-store' });
+      const res = await fetch(`${API}/api/devices/my-mac`, { cache: 'no-store' });
       const data = await res.json();
-      if (data.mac) {
-        _clientMac = data.mac.toLowerCase();
+      if (data.mac_address) {
+        _clientMac = data.mac_address.toLowerCase();
         _macLookupFailed = false;
         if (payBtn) payBtn.disabled = false;
         return;

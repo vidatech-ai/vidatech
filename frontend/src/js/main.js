@@ -180,7 +180,7 @@ async function handlePayment() {
      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Payment failed.');
+    if (res.status >= 400) throw new Error(data.detail || 'Payment failed.');
 
     setProgress(60, 'M-Pesa prompt sent — enter your PIN…');
 

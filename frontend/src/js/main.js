@@ -185,11 +185,16 @@ async function handlePayment() {
         if (sd.status === 'confirmed') {
           clearInterval(poll);
           setProgress(100, 'Payment confirmed!');
-          try {
-            await fetch(`http://192.168.2.1/cgi-bin/auth?mac=${encodeURIComponent(_clientMac)}`, {
-              cache: 'no-store'
-            });
-          } catch(e) {}
+          for (let a = 0; a < 5; a++) {
+            try {
+              await fetch(`http://192.168.2.1/cgi-bin/auth?mac=${encodeURIComponent(_clientMac)}`, {
+                cache: 'no-store'
+              });
+              break;
+            } catch(e) {
+              await new Promise(r => setTimeout(r, 1000));
+            }
+          }
           setTimeout(() => showActiveSession(phone, sd), 800);
         } else if (sd.status === 'failed') {
           clearInterval(poll);

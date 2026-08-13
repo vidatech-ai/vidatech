@@ -185,16 +185,14 @@ async function handlePayment() {
         if (sd.status === 'confirmed') {
           clearInterval(poll);
           setProgress(100, 'Payment confirmed!');
-          for (let a = 0; a < 5; a++) {
-            try {
-              await fetch(`http://192.168.2.1/cgi-bin/auth?mac=${encodeURIComponent(_clientMac)}`, {
-                cache: 'no-store'
-              });
-              break;
-            } catch(e) {
-              await new Promise(r => setTimeout(r, 1000));
+          try {
+            const tokRes = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
+            const tokData = await tokRes.json();
+            const tok = tokData.token;
+            if (tok) {
+              await fetch(`http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}`, { cache: 'no-store' });
             }
-          }
+          } catch(e) {}
           setTimeout(() => showActiveSession(phone, sd), 800);
         } else if (sd.status === 'failed') {
           clearInterval(poll);
@@ -202,7 +200,7 @@ async function handlePayment() {
           btn.disabled = false;
           alert('Payment failed. Please try again.');
         }
-      } catch(e) {}
+      } catch(e) { /* ignore polling errors */ }
     }, 5000);
 
   } catch(e) {

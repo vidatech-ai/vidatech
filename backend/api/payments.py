@@ -97,7 +97,7 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
         db.table("devices").upsert({
             "mac_address": mac_address.lower(),
             "ip_address": client_ip,
-            "status": "pending_payment",
+            "status": "unknown",
         }, on_conflict="mac_address").execute()
 
     logger.info(f"STK push sent to {phone} for package '{package['name']}'")

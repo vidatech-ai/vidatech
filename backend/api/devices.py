@@ -13,6 +13,32 @@ logger = logging.getLogger("vidatech.devices")
 router = APIRouter()
 
 
+@router.post("/heartbeat")
+async def device_heartbeat(request: Request):
+    """Called by router when a device connects. Registers MAC+IP."""
+    body = await request.json()
+    mac = (body.get("mac_address") or "").lower().strip()
+    ip = body.get("ip_address") or ""
+    if not mac:
+        return {"ok": False}
+    db = get_db()
+    existing = db.table("devices").select("id").eq("mac_address", mac).limit(1).execute()
+    if existing.data:
+        db.table("devices").update({
+            "ip_address": ip,
+            "last_seen_at": utcnow().isoformat(),
+            "status": existing.data[0].get("status", "unknown"),
+        }).eq("mac_address", mac).execute()
+    else:
+        db.table("devices").insert({
+            "mac_address": mac,
+            "ip_address": ip,
+            "status": "unknown",
+            "last_seen_at": utcnow().isoformat(),
+        }).execute()
+    return {"ok": True}
+
+
 @router.get("/my-mac")
 async def my_mac(request: Request):
     """Returns the MAC address of the requesting device based on IP."""

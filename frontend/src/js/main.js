@@ -3,6 +3,33 @@ const API = 'https://vidatech-wifi.onrender.com';
 let token = localStorage.getItem('vt_token');
 let selectedPkg = { id: null, name: '', hours: 0, speed: '', price: 0 };
 let sessionInterval = null;
+
+const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1:8080/cgi-bin/getmac';
+let _clientMac = null;
+let _macLookupFailed = false;
+
+async function fetchClientMac(retries = 5, delayMs = 1500) {
+  const payBtn = document.getElementById('payBtn');
+  if (payBtn) payBtn.disabled = true;
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(ROUTER_MAC_ENDPOINT, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.mac) {
+        _clientMac = data.mac.toLowerCase();
+        _macLookupFailed = false;
+        if (payBtn) payBtn.disabled = false;
+        return;
+      }
+    } catch (e) {}
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+  _clientMac = null;
+  _macLookupFailed = true;
+  if (payBtn) { payBtn.disabled = true; payBtn.textContent = 'Reconnect WiFi and retry'; }
+  console.error('Could not resolve client MAC from router after retries.');
+}
+fetchClientMac();
 let allDevices = [];
 let activeMacs = new Set();
 
@@ -118,6 +145,14 @@ async function handlePayment() {
   if (!phone) { alert('Enter your M-Pesa number.'); return; }
   if (!selectedPkg.id) { alert('Select a package first.'); return; }
 
+  if (!_clientMac) {
+    await fetchClientMac(3, 1000);
+    if (!_clientMac) {
+      alert('Could not identify your device on the network. Please reconnect to WiFi and try again.');
+      return;
+    }
+  }
+
   const btn = document.getElementById('payBtn');
   btn.disabled = true;
   document.getElementById('progressWrap').classList.add('show');
@@ -127,7 +162,7 @@ async function handlePayment() {
     const res = await fetch(`${API}/api/payments/initiate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: '00:00:00:00:00:00' }),
+     body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Payment failed.');

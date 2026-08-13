@@ -43,7 +43,10 @@ async def device_heartbeat(request: Request):
 async def my_mac(request: Request):
     """Returns the MAC address of the requesting device based on IP."""
     db = get_db()
-    client_ip = request.client.host
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.client.host
+    )
     result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
     if not result.data:
         return {"mac_address": None}

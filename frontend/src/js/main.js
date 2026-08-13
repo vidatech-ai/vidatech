@@ -4,7 +4,7 @@ let token = localStorage.getItem('vt_token');
 let selectedPkg = { id: null, name: '', hours: 0, speed: '', price: 0 };
 let sessionInterval = null;
 
-const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1/cgi-bin/getmac';
+const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1/cgi-bin/getmac';  // same URL, fetch changes below
 let _clientMac = null;
 let _macLookupFailed = false;
 
@@ -13,7 +13,9 @@ async function fetchClientMac(retries = 5, delayMs = 1500) {
   if (payBtn) payBtn.disabled = true;
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(ROUTER_MAC_ENDPOINT, { cache: 'no-store' });
+      const myIp = await fetch('http://192.168.2.1/cgi-bin/getmac?ip=detect', { cache: 'no-store' })
+  .then(r => r.json()).then(d => d.ip).catch(() => null);
+const res = await fetch(`${ROUTER_MAC_ENDPOINT}?ip=${myIp}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.mac) {
         _clientMac = data.mac.toLowerCase();

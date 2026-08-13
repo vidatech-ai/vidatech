@@ -4,7 +4,7 @@
 # =============================================================================
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, Request, status
 from auth.dependencies import require_admin
 from db import get_db
 from utils import utcnow
@@ -62,7 +62,60 @@ async def terminate_session(session_id: str, admin=Depends(require_admin)):
     return {"message": "Session terminated."}
 
 
-@router.get("/check/{mac_address}")
+@router.get("/reconnect/{mpesa_code}")
+async def reconnect_by_mpesa_code(mpesa_code: str, request: Request):
+    db = get_db()
+    mpesa_code = mpesa_code.strip().upper()
+
+    pay_result = db.table("payments").select(
+        "id, phone, mac_address, status, packages(name, duration_hours)"
+    ).eq("mpesa_transaction_code", mpesa_code).limit(1).execute()
+
+    if not pay_result.data:
+        return {"allowed": False, "reason": "code_not_found"}
+
+    payment = pay_result.data[0]
+    if payment["status"] != "confirmed":
+        return {"allowed": False, "reason": "payment_not_confirmed"}
+
+    sess_result = db.table("sessions").select(
+        "id, expires_at, mac_address, packages(name)"
+    ).eq("payment_id", payment["id"]).eq("status", "active").limit(1).execute()
+
+    if not sess_result.data:
+        return {"allowed": False, "reason": "session_expired"}
+
+    session = sess_result.data[0]
+    if session["expires_at"] < utcnow().isoformat():
+        return {"allowed": False, "reason": "session_expired"}
+
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.client.host
+    )
+    dev_result = db.table("devices").select("mac_address").eq(
+        "ip_address", client_ip
+    ).limit(1).execute()
+
+    new_mac = dev_result.data[0]["mac_address"] if dev_result.data else None
+
+    if new_mac and new_mac != session["mac_address"]:
+        db.table("sessions").update({
+            "mac_address": new_mac.lower()
+        }).eq("id", session["id"]).execute()
+        db.table("devices").upsert({
+            "mac_address": new_mac.lower(),
+            "ip_address": client_ip,
+            "status": "allowed",
+            "last_seen_at": utcnow().isoformat(),
+        }, on_conflict="mac_address").execute()
+
+    return {
+        "allowed": True,
+        "expires_at": session["expires_at"],
+        "package": session["packages"]["name"] if session.get("packages") else "—",
+        "phone": payment["phone"],
+    }
 async def check_session(mac_address: str):
     """
     Portal gateway calls this to check if a device has an active paid session.

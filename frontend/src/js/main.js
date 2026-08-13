@@ -788,18 +788,31 @@ async function checkMySession() {
   document.getElementById('checkNotFound').style.display = 'none';
 
   try {
-    const macRes = await fetch(`${API}/api/devices/my-mac`);
-    const macData = await macRes.json();
-    const mac = macData.mac_address;
-
-    if (!mac) {
-      document.getElementById('checkResult').style.display = 'block';
-      document.getElementById('checkNotFound').style.display = 'block';
-      return;
+    let data = null;
+    if (_clientMac) {
+      const res = await fetch(`${API}/api/sessions/check/${_clientMac}`);
+      data = await res.json();
     }
 
-    const res = await fetch(`${API}/api/sessions/check/${mac}`);
-    const data = await res.json();
+    if (!data || !data.allowed) {
+      const code = prompt('Enter your M-Pesa confirmation code (e.g. RGX7K2L3MN) to reconnect:');
+      if (!code) {
+        document.getElementById('checkResult').style.display = 'block';
+        document.getElementById('checkNotFound').style.display = 'block';
+        return;
+      }
+      const res2 = await fetch(`${API}/api/sessions/reconnect/${code.trim().toUpperCase()}`);
+      data = await res2.json();
+      if (data.allowed) {
+        try {
+          const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
+          const tokData = await tokRes.json();
+          const tok = tokData.token;
+          if (tok) await fetch(`http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}`, { cache: 'no-store' });
+        } catch(e) {}
+      }
+    }
+
     document.getElementById('checkResult').style.display = 'block';
 
     if (data.allowed) {
@@ -816,13 +829,10 @@ async function checkMySession() {
         const s = Math.floor((rem % 60000) / 1000).toString().padStart(2,'0');
         document.getElementById('checkTimer').textContent = `${h}:${m}:${s}`;
       }, 1000);
-
-    } else if (data.reason === 'expired') {
+    } else if (data.reason === 'expired' || data.reason === 'session_expired') {
       document.getElementById('checkExpired').style.display = 'block';
       document.getElementById('checkExpiredDetails').innerHTML =
-        `Paid at: <strong>${new Date(data.paid_at).toLocaleString()}</strong><br>
-         Expired at: <strong>${new Date(data.expired_at).toLocaleString()}</strong><br>
-         Package: <strong>${data.package}</strong>`;
+        `Package: <strong>${data.package ?? '—'}</strong><br>Session has expired.`;
     } else {
       document.getElementById('checkNotFound').style.display = 'block';
     }

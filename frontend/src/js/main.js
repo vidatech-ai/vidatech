@@ -188,6 +188,11 @@ async function handlePayment() {
         if (sd.status === 'confirmed') {
           clearInterval(poll);
           setProgress(100, 'Payment confirmed!');
+          try {
+            await fetch(`http://192.168.2.1/cgi-bin/auth?mac=${encodeURIComponent(_clientMac)}`, {
+              cache: 'no-store'
+            });
+          } catch(e) {}
           setTimeout(() => showActiveSession(phone, sd), 800);
         } else if (sd.status === 'failed') {
           clearInterval(poll);

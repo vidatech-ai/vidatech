@@ -4,7 +4,7 @@ let token = localStorage.getItem('vt_token');
 let selectedPkg = { id: null, name: '', hours: 0, speed: '', price: 0 };
 let sessionInterval = null;
 
-const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1:8080/cgi-bin/getmac';
+const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1/cgi-bin/getmac';
 let _clientMac = null;
 let _macLookupFailed = false;
 

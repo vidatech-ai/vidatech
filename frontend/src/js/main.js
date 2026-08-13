@@ -174,15 +174,53 @@ async function handlePayment() {
   setProgress(20, 'Initiating payment…');
 
   try {
-    const res = await fetch(`${API}/api/payments/initiate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac }),
-    });
-    const data = await res.json();
-    if (res.status >= 400) throw new Error(data.detail || 'Payment failed.');
+    let data;
+    try {
+      const res = await fetch(`${API}/api/payments/initiate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac }),
+      });
+      data = await res.json();
+      if (res.status >= 400) throw new Error(data.detail || 'Payment failed.');
+    } catch(fetchErr) {
+      if (fetchErr.message && fetchErr.message !== 'Failed to fetch') throw fetchErr;
+      // Render woke up and processed the request even if fetch timed out
+      // Continue to polling — STK push was sent
+      data = { payment_id: null };
+    }
 
     setProgress(60, 'M-Pesa prompt sent — enter your PIN…');
+
+    if (!data.payment_id) {
+      // We don't have a payment_id — poll by phone+package instead
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        if (attempts > 24) {
+          clearInterval(poll);
+          document.getElementById('progressWrap').classList.remove('show');
+          btn.disabled = false;
+          return;
+        }
+        try {
+          const sr = await fetch(`${API}/api/payments/status/latest?phone=${encodeURIComponent(phone)}`);
+          const sd = await sr.json();
+          if (sd.status === 'confirmed') {
+            clearInterval(poll);
+            setProgress(100, 'Payment confirmed!');
+            try {
+              const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
+              const tokData = await tokRes.json();
+              const tok = tokData.token;
+              if (tok) await fetch(`http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}`, { cache: 'no-store' });
+            } catch(e) {}
+            setTimeout(() => showActiveSession(phone, sd), 800);
+          }
+        } catch(e) {}
+      }, 5000);
+      return;
+    }
 
     const paymentId = data.payment_id;
     let attempts = 0;

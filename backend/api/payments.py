@@ -224,6 +224,21 @@ async def list_payments(limit: int = 50, admin=Depends(require_admin)):
     return result.data
 
 
+@router.get("/status/latest")
+async def latest_payment_status(phone: str):
+    """Poll latest payment by phone number — used when payment_id is unavailable due to fetch timeout."""
+    db = get_db()
+    phone = normalise_phone(phone)
+    if not phone:
+        raise HTTPException(status_code=400, detail="Invalid phone.")
+    result = db.table("payments").select(
+        "id, status, mpesa_transaction_code, confirmed_at"
+    ).eq("phone", phone).order("created_at", desc=True).limit(1).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="No payment found.")
+    return result.data[0]
+
+
 @router.get("/status/{payment_id}")
 async def payment_status(payment_id: str):
     """Customer polls this to know if their payment went through."""

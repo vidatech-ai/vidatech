@@ -1,4 +1,10 @@
 // ─── PORTAL — PACKAGE SELECTION ─────────────────────
+// Read MAC injected by nodogsplash from URL
+const _urlParams = new URLSearchParams(window.location.search);
+const _clientMac = _urlParams.get('mac') || '00:00:00:00:00:00';
+const _clientIp  = _urlParams.get('ip')  || '';
+const _ndsToken  = _urlParams.get('tok') || '';
+
 function initPortalPackages() {
   document.querySelectorAll('.pkg-big').forEach(card => {
     card.addEventListener('click', () => {
@@ -84,7 +90,7 @@ async function handlePayment() {
     const res = await fetch(`${API}/api/payments/initiate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: '00:00:00:00:00:00' }),
+      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Payment failed.');

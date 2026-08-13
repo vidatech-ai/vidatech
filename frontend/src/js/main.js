@@ -10,7 +10,6 @@ let _macLookupFailed = false;
 
 async function fetchClientMac(retries = 5, delayMs = 1500) {
   const payBtn = document.getElementById('payBtn');
-  if (payBtn) payBtn.disabled = true;
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(`${API}/api/devices/my-mac`, { cache: 'no-store' });
@@ -25,8 +24,8 @@ async function fetchClientMac(retries = 5, delayMs = 1500) {
     await new Promise(r => setTimeout(r, delayMs));
   }
   _clientMac = null;
-  _macLookupFailed = true;
-  if (payBtn) { payBtn.disabled = true; payBtn.textContent = 'Reconnect WiFi and retry'; }
+  _macLookupFailed = false;
+  if (payBtn) payBtn.disabled = false;
   console.error('Could not resolve client MAC from router after retries.');
 }
 fetchClientMac();

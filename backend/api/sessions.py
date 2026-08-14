@@ -187,6 +187,28 @@ async def reconnect_by_phone(phone: str, request: Request):
     }
 
 
+@router.get("/expired-macs")
+async def expired_macs():
+    """
+    Called by router cron job every 5 minutes.
+    Returns list of MACs whose sessions have expired but may still be authenticated on router.
+    """
+    db = get_db()
+    now = utcnow().isoformat()
+    result = db.table("sessions").select(
+        "mac_address"
+    ).eq("status", "active").lt("expires_at", now).execute()
+    if result.data:
+        expired = [s["mac_address"] for s in result.data if s["mac_address"]]
+        db.table("sessions").update({
+            "status": "expired",
+            "terminated_at": now,
+            "termination_reason": "expired",
+        }).eq("status", "active").lt("expires_at", now).execute()
+        return {"macs": expired}
+    return {"macs": []}
+
+
 @router.get("/check/{mac_address:path}")
 async def check_session(mac_address: str):
     """

@@ -215,6 +215,14 @@ async function handlePayment() {
               const tok = tokData.token;
               if (tok) await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
             } catch(e) {}
+            try {
+              const tokRes2 = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
+              const tokData2 = await tokRes2.json();
+              if (tokData2.token) {
+                window.location.href = `http://192.168.2.1:2050/nodogsplash_auth/?tok=${tokData2.token}&redir=https://vidatech-wifi.pages.dev`;
+                return;
+              }
+            } catch(e) {}
             setTimeout(() => showActiveSession(phone, sd), 800);
           }
         } catch(e) {}
@@ -238,13 +246,22 @@ async function handlePayment() {
         const sd = await sr.json();
         if (sd.status === 'confirmed') {
           clearInterval(poll);
-          setProgress(100, 'Payment confirmed!');
+          setProgress(100, 'Payment confirmed! Connecting you now…');
           try {
             const tokRes = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
             const tokData = await tokRes.json();
             const tok = tokData.token;
             if (tok) {
               await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
+            }
+          } catch(e) {}
+          // Fallback: redirect through nodogsplash auth URL directly
+          try {
+            const tokRes2 = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
+            const tokData2 = await tokRes2.json();
+            if (tokData2.token) {
+              window.location.href = `http://192.168.2.1:2050/nodogsplash_auth/?tok=${tokData2.token}&redir=https://vidatech-wifi.pages.dev`;
+              return;
             }
           } catch(e) {}
           setTimeout(() => showActiveSession(phone, sd), 800);
@@ -824,7 +841,11 @@ async function authorizeOnRouter() {
     const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
     const tokData = await tokRes.json();
     const tok = tokData.token;
-    if (tok) await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
+    if (tok) {
+      await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
+      // Redirect through nodogsplash to force authorization
+      window.location.href = `http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}&redir=https://vidatech-wifi.pages.dev`;
+    }
   } catch(e) {}
 }
 

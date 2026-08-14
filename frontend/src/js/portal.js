@@ -116,7 +116,6 @@ async function handlePayment() {
   if (!selectedPkg.id) { alert('Select a package first.'); return; }
 
   if (!_clientMac) {
-    // Give it one more shot rather than sending a dummy MAC to the backend
     await fetchClientMac(3, 1000);
     if (!_clientMac) {
       alert('Could not identify your device on the network. Please reconnect to WiFi and try again.');
@@ -127,7 +126,7 @@ async function handlePayment() {
   const btn = document.getElementById('payBtn');
   btn.disabled = true;
   document.getElementById('progressWrap').classList.add('show');
-  setProgress(20, 'Initiating payment…');
+  setProgress(10, 'Connecting to payment server…');
 
   try {
     const res = await fetch(`${API}/api/payments/initiate`, {
@@ -138,7 +137,7 @@ async function handlePayment() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Payment failed.');
 
-    setProgress(60, 'M-Pesa prompt sent — enter your PIN…');
+    setProgress(40, 'M-Pesa prompt sent to your phone — enter your PIN now…');
 
     const paymentId = data.payment_id;
     let attempts = 0;
@@ -151,13 +150,27 @@ async function handlePayment() {
         alert('Payment timed out. Please try again.');
         return;
       }
+      setProgress(40 + Math.min(attempts * 2, 40), attempts < 6
+        ? 'Waiting for M-Pesa confirmation…'
+        : 'Still waiting — please enter your PIN if you haven\'t…'
+      );
       try {
         const sr = await fetch(`${API}/api/payments/status/${paymentId}`);
         const sd = await sr.json();
         if (sd.status === 'confirmed') {
           clearInterval(poll);
-          setProgress(100, 'Payment confirmed!');
-          setTimeout(() => showActiveSession(phone, sd), 800);
+          setProgress(90, 'Payment confirmed! Activating your session…');
+          // Wait 10s for agent to auth the device
+          let countdown = 10;
+          const activating = setInterval(() => {
+            countdown--;
+            setProgress(90 + (10 - countdown), `Activating internet access… ${countdown}s`);
+            if (countdown <= 0) {
+              clearInterval(activating);
+              setProgress(100, 'You are connected!');
+              setTimeout(() => showActiveSession(phone, sd), 500);
+            }
+          }, 1000);
         } else if (sd.status === 'failed') {
           clearInterval(poll);
           document.getElementById('progressWrap').classList.remove('show');
@@ -176,6 +189,7 @@ async function handlePayment() {
 
 function showActiveSession(phone, data) {
   document.getElementById('payFormWrap').style.display = 'none';
+  document.getElementById('progressWrap').classList.remove('show');
   document.getElementById('sessionActive').classList.add('show');
   document.getElementById('stateConnected').style.display = 'block';
   document.getElementById('stateExpired').style.display = 'none';
@@ -184,7 +198,8 @@ function showActiveSession(phone, data) {
   document.getElementById('sessionPhone').textContent = phone.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
 
   const paidAt = new Date();
-  const expires = new Date(Date.now() + selectedPkg.hours * 3600000);
+  // Add 10s buffer — agent needs up to 30s but we already waited 10s above
+  const expires = new Date(Date.now() + selectedPkg.hours * 3600000 + 10000);
   document.getElementById('sessionExpires').textContent = 'Expires ' + expires.toLocaleString();
 
   if (sessionInterval) clearInterval(sessionInterval);
@@ -202,6 +217,12 @@ function showActiveSession(phone, data) {
     const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2,'0');
     const s = Math.floor((rem % 60000) / 1000).toString().padStart(2,'0');
     document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
+
+    // Warn client 2 minutes before expiry
+    if (rem < 120000 && rem > 119000) {
+      document.getElementById('sessionExpires').textContent =
+        '⚠️ Less than 2 minutes remaining — buy again soon!';
+    }
   }, 1000);
 }
 

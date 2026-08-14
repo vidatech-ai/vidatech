@@ -22,8 +22,12 @@ async function loadRouterStatus() {
 setInterval(() => {
   if (document.getElementById('page-dashboard')?.classList.contains('active')) {
     loadRouterStatus();
+    loadDashboard();
   }
-}, 60000);
+  if (document.getElementById('page-sessions')?.classList.contains('active')) {
+    loadSessions();
+  }
+}, 30000);
 
 async function loadDashboard() {
   loadRouterStatus();

@@ -38,7 +38,7 @@ fetchClientMac().then(async () => {
         const tokData = await tokRes.json();
         const tok = tokData.token;
         if (tok) {
-          await fetch(`http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}`, { cache: 'no-store' });
+          await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
         }
         showActiveSession('', data);
       }
@@ -244,7 +244,7 @@ async function handlePayment() {
             const tokData = await tokRes.json();
             const tok = tokData.token;
             if (tok) {
-              await fetch(`http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}`, { cache: 'no-store' });
+              await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
             }
           } catch(e) {}
           setTimeout(() => showActiveSession(phone, sd), 800);
@@ -819,6 +819,15 @@ if (_pkgModal) _pkgModal.addEventListener('click', function(e) {
 
 let checkTimerInterval = null;
 
+async function authorizeOnRouter() {
+  try {
+    const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
+    const tokData = await tokRes.json();
+    const tok = tokData.token;
+    if (tok) await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
+  } catch(e) {}
+}
+
 async function checkMySession() {
   document.getElementById('checkResult').style.display = 'none';
   document.getElementById('checkActive').style.display = 'none';
@@ -826,32 +835,17 @@ async function checkMySession() {
   document.getElementById('checkNotFound').style.display = 'none';
 
   try {
-    let data = null;
-    if (_clientMac) {
-      const res = await fetch(`${API}/api/sessions/check/${_clientMac}`);
-      data = await res.json();
-    }
+    const phone = prompt('Enter your M-Pesa number (e.g. 0712345678):');
+    if (!phone) return;
 
-    if (!data || !data.allowed) {
-      const phone = prompt('Enter your M-Pesa number to reconnect (e.g. 0712345678):');
-      if (!phone) {
-        document.getElementById('checkResult').style.display = 'block';
-        document.getElementById('checkNotFound').style.display = 'block';
-        return;
-      }
-      const res2 = await fetch(`${API}/api/sessions/reconnect-by-phone?phone=${encodeURIComponent(phone.trim())}`);
-      data = await res2.json();
-      if (data.allowed) {
-        try {
-          const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
-          const tokData = await tokRes.json();
-          const tok = tokData.token;
-          if (tok) await fetch(`http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}`, { cache: 'no-store' });
-        } catch(e) {}
-      } else if (data.reason === 'all_slots_in_use') {
-        alert(data.message);
-        return;
-      }
+    const res = await fetch(`${API}/api/sessions/reconnect-by-phone?phone=${encodeURIComponent(phone.trim())}`);
+    const data = await res.json();
+
+    if (data.allowed) {
+      await authorizeOnRouter();
+    } else if (data.reason === 'all_slots_in_use') {
+      alert(data.message);
+      return;
     }
 
     document.getElementById('checkResult').style.display = 'block';

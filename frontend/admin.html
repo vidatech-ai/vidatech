@@ -175,6 +175,23 @@
         <div class="section-header"><div class="section-title">Package Popularity</div></div>
         <div id="pkgPopularity" class="pkg-popularity-grid"></div>
       </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">🔴 Live Router Clients</div>
+          <button class="action-btn" onclick="loadRouterStatus()">↻ Refresh</button>
+        </div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>MAC Address</th><th>IP</th><th>State</th><th>Downloaded</th><th>Uploaded</th><th>Token</th>
+          </tr></thead>
+          <tbody id="routerClientsTable">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
     </div>
 
     <!-- LIVE SESSIONS -->

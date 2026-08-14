@@ -39,8 +39,16 @@ async def device_heartbeat(request: Request):
     return {"ok": True}
 
 
-@router.get("/my-mac")
-async def my_mac(request: Request):
+@router.get("/router-status")
+async def router_status():
+    """Fetch live nodogsplash client data from the router."""
+    import httpx
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get("http://192.168.2.1/cgi-bin/ndsstatus", timeout=5)
+            return res.json()
+    except Exception:
+        return {"client_length": 0, "clients": {}}
     """Returns the MAC address of the requesting device based on IP."""
     db = get_db()
     client_ip = (

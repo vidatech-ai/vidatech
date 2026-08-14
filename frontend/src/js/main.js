@@ -412,6 +412,7 @@ async function api(path, opts) {
 
 // ─── DASHBOARD ──────────────────────────────────────
 async function loadDashboard() {
+  loadRouterStatus();
   const data = await api('/api/reports/dashboard');
   if (!data) return;
   document.getElementById('statActive').textContent = data.active_sessions ?? 0;
@@ -458,7 +459,32 @@ async function loadDashboard() {
   }
 }
 
-// ─── SESSIONS ───────────────────────────────────────
+// ─── ROUTER LIVE STATUS ─────────────────────────────
+async function loadRouterStatus() {
+  const data = await api('/api/devices/router-status');
+  if (!data) return;
+  const tbody = document.getElementById('routerClientsTable');
+  if (!data.client_length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No clients connected.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = Object.values(data.clients).map(c => `
+    <tr>
+      <td class="mono">${c.mac}</td>
+      <td class="mono">${c.ip}</td>
+      <td><span class="badge ${c.state === 'Authenticated' ? 'badge-success' : 'badge-warning'}">${c.state}</span></td>
+      <td>${(c.downloaded / 1024).toFixed(1)} MB</td>
+      <td>${(c.uploaded / 1024).toFixed(1)} MB</td>
+      <td class="mono" style="font-size:11px">${c.token}</td>
+    </tr>`).join('');
+}
+
+// Auto-refresh router status every 30 seconds
+setInterval(() => {
+  if (document.getElementById('page-dashboard').classList.contains('active')) {
+    loadRouterStatus();
+  }
+}, 30000);
 async function loadSessions() {
   const data = await api('/api/sessions/active');
   if (!data) return;

@@ -213,7 +213,7 @@ async function handlePayment() {
               const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
               const tokData = await tokRes.json();
               const tok = tokData.token;
-              if (tok) await fetch(`http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}`, { cache: 'no-store' });
+              if (tok) await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
             } catch(e) {}
             setTimeout(() => showActiveSession(phone, sd), 800);
           }

@@ -200,6 +200,21 @@ async def reconnect_by_phone(phone: str, request: Request):
     }
 
 
+@router.get("/active-macs")
+async def active_macs():
+    """
+    Called by router agent every 30 seconds.
+    Returns list of MACs with active paid sessions — agent calls ndsctl auth on these.
+    """
+    db = get_db()
+    now = utcnow().isoformat()
+    result = db.table("sessions").select(
+        "mac_address"
+    ).eq("status", "active").gt("expires_at", now).execute()
+    macs = [s["mac_address"] for s in result.data if s["mac_address"]]
+    return {"macs": macs}
+
+
 @router.get("/expired-macs")
 async def expired_macs():
     """

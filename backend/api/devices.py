@@ -39,16 +39,21 @@ async def device_heartbeat(request: Request):
     return {"ok": True}
 
 
+_router_status_cache = {"client_length": 0, "clients": {}, "updated_at": None}
+
+@router.post("/router-status")
+async def push_router_status(request: Request):
+    """Called by router every 30 seconds to push live nodogsplash data."""
+    global _router_status_cache
+    body = await request.json()
+    body["updated_at"] = utcnow().isoformat()
+    _router_status_cache = body
+    return {"ok": True}
+
 @router.get("/router-status")
 async def router_status():
-    """Fetch live nodogsplash client data from the router."""
-    import httpx
-    try:
-        async with httpx.AsyncClient() as client:
-            res = await client.get("http://192.168.2.1/cgi-bin/ndsstatus", timeout=5)
-            return res.json()
-    except Exception:
-        return {"client_length": 0, "clients": {}}
+    """Returns cached router status pushed by the router."""
+    return _router_status_cache
 
 
 @router.post("/authorize")

@@ -848,20 +848,15 @@ let checkTimerInterval = null;
 
 async function authorizeOnRouter(mac) {
   try {
-    // Let backend authorize — avoids mixed content block
-    const res = await fetch(`${API}/api/devices/authorize`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mac_address: mac || _clientMac }),
-    });
-    const data = await res.json();
-    if (data.authorized) return true;
-    // Fallback: try direct router call
     const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
     const tokData = await tokRes.json();
     const tok = tokData.token;
-    if (tok) await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
+    if (tok) {
+      await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
+      return true;
+    }
   } catch(e) {}
+  return false;
 }
 
 async function checkMySession() {

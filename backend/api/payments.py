@@ -195,6 +195,7 @@ async def paystack_webhook(request: Request):
         "package_id": package["id"],
         "mac_address": mac_address,
         "ip_address": device["ip_address"] if device else None,
+        "phone": payment["phone"],
         "status": "active",
         "started_at": utcnow().isoformat(),
         "expires_at": hours_from_now(package["duration_hours"]).isoformat(),

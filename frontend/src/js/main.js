@@ -833,13 +833,13 @@ async function checkMySession() {
     }
 
     if (!data || !data.allowed) {
-      const code = prompt('Enter your M-Pesa confirmation code (e.g. RGX7K2L3MN) to reconnect:');
-      if (!code) {
+      const phone = prompt('Enter your M-Pesa number to reconnect (e.g. 0712345678):');
+      if (!phone) {
         document.getElementById('checkResult').style.display = 'block';
         document.getElementById('checkNotFound').style.display = 'block';
         return;
       }
-      const res2 = await fetch(`${API}/api/sessions/reconnect/${code.trim().toUpperCase()}`);
+      const res2 = await fetch(`${API}/api/sessions/reconnect-by-phone?phone=${encodeURIComponent(phone.trim())}`);
       data = await res2.json();
       if (data.allowed) {
         try {
@@ -848,6 +848,9 @@ async function checkMySession() {
           const tok = tokData.token;
           if (tok) await fetch(`http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}`, { cache: 'no-store' });
         } catch(e) {}
+      } else if (data.reason === 'all_slots_in_use') {
+        alert(data.message);
+        return;
       }
     }
 

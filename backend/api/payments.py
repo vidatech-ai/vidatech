@@ -51,7 +51,10 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
     package = pkg_result.data
 
     # Detect MAC from IP if not provided
-    client_ip = request.client.host
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.client.host
+    )
     mac_address = body.mac_address
     if not mac_address or mac_address == "00:00:00:00:00:00":
         device_result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()

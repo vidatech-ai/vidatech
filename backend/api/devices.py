@@ -58,20 +58,18 @@ async def authorize_device(request: Request):
     Backend finds the client token from router and authorizes it.
     """
     import httpx
-    client_ip = (
-        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        or request.client.host
-    )
+    body = await request.json()
+    mac_address = (body.get("mac_address") or "").lower().strip()
     try:
         async with httpx.AsyncClient() as client:
             # Get live router clients
             res = await client.get("http://192.168.2.1/cgi-bin/ndsstatus", timeout=5)
             data = res.json()
             clients = data.get("clients", {})
-            # Find token for this IP
+            # Find token for this MAC
             token = None
             for mac, info in clients.items():
-                if info.get("ip") == client_ip:
+                if mac.lower() == mac_address:
                     token = info.get("token")
                     break
             if token:

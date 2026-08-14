@@ -247,7 +247,7 @@ async function handlePayment() {
         if (sd.status === 'confirmed') {
           clearInterval(poll);
           setProgress(100, 'Payment confirmed! Connecting you now…');
-          await authorizeOnRouter();
+          await authorizeOnRouter(_clientMac);
           setTimeout(() => showActiveSession(phone, sd), 800);
         } else if (sd.status === 'failed') {
           clearInterval(poll);
@@ -846,12 +846,13 @@ if (_pkgModal) _pkgModal.addEventListener('click', function(e) {
 
 let checkTimerInterval = null;
 
-async function authorizeOnRouter() {
+async function authorizeOnRouter(mac) {
   try {
     // Let backend authorize — avoids mixed content block
     const res = await fetch(`${API}/api/devices/authorize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mac_address: mac || _clientMac }),
     });
     const data = await res.json();
     if (data.authorized) return true;
@@ -877,7 +878,7 @@ async function checkMySession() {
     const data = await res.json();
 
     if (data.allowed) {
-      await authorizeOnRouter();
+      await authorizeOnRouter(data.mac_address);
     } else if (data.reason === 'all_slots_in_use') {
       alert(data.message);
       return;

@@ -122,6 +122,7 @@ async def reconnect_by_phone(phone: str, request: Request):
                 "expires_at": s["expires_at"],
                 "package": s["packages"]["name"] if s.get("packages") else "—",
                 "phone": phone,
+                "mac_address": new_mac,
                 "slots_used": len(active_sessions),
                 "slots_total": len(active_sessions),
             }
@@ -180,6 +181,7 @@ async def reconnect_by_phone(phone: str, request: Request):
         "expires_at": available_session["expires_at"],
         "package": available_session["packages"]["name"] if available_session.get("packages") else "—",
         "phone": phone,
+        "mac_address": new_mac,
         "slots_used": len([s for s in active_sessions if s["mac_address"]]),
         "slots_total": total_slots,
     }

@@ -162,10 +162,6 @@ async function handlePayment() {
 
   if (!_clientMac) {
     await fetchClientMac(3, 1000);
-    if (!_clientMac) {
-      alert('Could not identify your device on the network. Please reconnect to WiFi and try again.');
-      return;
-    }
   }
 
   const btn = document.getElementById('payBtn');

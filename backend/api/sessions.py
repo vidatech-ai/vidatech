@@ -163,8 +163,21 @@ async def reconnect_by_phone(phone: str, request: Request):
             "message": f"All {total_slots} device slot(s) are currently in use. Disconnect another device first."
         }
 
-    # Assign new MAC to available session
+    # Assign new MAC to available session — deauth old MAC first
     if new_mac:
+        old_mac = available_session.get("mac_address")
+        if old_mac and old_mac != new_mac:
+            # Mark old session MAC as replaced
+            import httpx
+            try:
+                async with httpx.AsyncClient() as hclient:
+                    await hclient.get(
+                        f"http://192.168.2.1/cgi-bin/auth?deauth={old_mac}",
+                        timeout=3
+                    )
+            except Exception:
+                pass
+
         db.table("sessions").update({
             "mac_address": new_mac
         }).eq("id", available_session["id"]).execute()

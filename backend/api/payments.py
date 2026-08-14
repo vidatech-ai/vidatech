@@ -189,11 +189,12 @@ async def paystack_webhook(request: Request):
     device_result = db.table("devices").select("*").eq("mac_address", mac_address).limit(1).execute()
     device = device_result.data[0] if device_result.data else None
 
-    # Create session
+    # Create session — use null MAC if unknown so reconnect-by-phone can assign it
+    clean_mac = mac_address if mac_address and mac_address != "00:00:00:00:00:00" else None
     session_result = db.table("sessions").insert({
         "payment_id": payment["id"],
         "package_id": package["id"],
-        "mac_address": mac_address,
+        "mac_address": clean_mac,
         "ip_address": device["ip_address"] if device else None,
         "phone": payment["phone"],
         "status": "active",

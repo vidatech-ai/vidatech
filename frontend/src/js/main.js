@@ -247,23 +247,7 @@ async function handlePayment() {
         if (sd.status === 'confirmed') {
           clearInterval(poll);
           setProgress(100, 'Payment confirmed! Connecting you now…');
-          try {
-            const tokRes = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
-            const tokData = await tokRes.json();
-            const tok = tokData.token;
-            if (tok) {
-              await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
-            }
-          } catch(e) {}
-          // Fallback: redirect through nodogsplash auth URL directly
-          try {
-            const tokRes2 = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
-            const tokData2 = await tokRes2.json();
-            if (tokData2.token) {
-              window.location.href = `http://192.168.2.1:2050/nodogsplash_auth/?tok=${tokData2.token}&redir=https://vidatech-wifi.pages.dev`;
-              return;
-            }
-          } catch(e) {}
+          await authorizeOnRouter();
           setTimeout(() => showActiveSession(phone, sd), 800);
         } else if (sd.status === 'failed') {
           clearInterval(poll);
@@ -864,14 +848,18 @@ let checkTimerInterval = null;
 
 async function authorizeOnRouter() {
   try {
+    // Let backend authorize — avoids mixed content block
+    const res = await fetch(`${API}/api/devices/authorize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    if (data.authorized) return true;
+    // Fallback: try direct router call
     const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
     const tokData = await tokRes.json();
     const tok = tokData.token;
-    if (tok) {
-      await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
-      // Redirect through nodogsplash to force authorization
-      window.location.href = `http://192.168.2.1:2050/nodogsplash_auth/?tok=${tok}&redir=https://vidatech-wifi.pages.dev`;
-    }
+    if (tok) await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
   } catch(e) {}
 }
 

@@ -49,6 +49,37 @@ async def router_status():
             return res.json()
     except Exception:
         return {"client_length": 0, "clients": {}}
+
+
+@router.post("/authorize")
+async def authorize_device(request: Request):
+    """
+    Called by frontend after payment confirmed.
+    Backend finds the client token from router and authorizes it.
+    """
+    import httpx
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.client.host
+    )
+    try:
+        async with httpx.AsyncClient() as client:
+            # Get live router clients
+            res = await client.get("http://192.168.2.1/cgi-bin/ndsstatus", timeout=5)
+            data = res.json()
+            clients = data.get("clients", {})
+            # Find token for this IP
+            token = None
+            for mac, info in clients.items():
+                if info.get("ip") == client_ip:
+                    token = info.get("token")
+                    break
+            if token:
+                await client.get(f"http://192.168.2.1/cgi-bin/auth?tok={token}", timeout=5)
+                return {"authorized": True, "token": token}
+            return {"authorized": False, "reason": "client_not_found"}
+    except Exception as e:
+        return {"authorized": False, "reason": str(e)}
     """Returns the MAC address of the requesting device based on IP."""
     db = get_db()
     client_ip = (

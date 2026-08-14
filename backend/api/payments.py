@@ -67,6 +67,7 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
         "amount_kes": package["price_kes"],
         "mac_address": mac_address.lower(),
         "status": "pending",
+        "ip_address": client_ip,
     }).execute()
 
     payment = payment_result.data[0]
@@ -167,6 +168,12 @@ async def paystack_webhook(request: Request):
     }).eq("id", payment["id"]).execute()
 
     mac_address = payment.get("mac_address", "00:00:00:00:00:00")
+    if not mac_address or mac_address == "00:00:00:00:00:00":
+        ip_lookup = db.table("devices").select("mac_address").eq(
+            "ip_address", payment.get("ip_address")
+        ).limit(1).execute()
+        if ip_lookup.data:
+            mac_address = ip_lookup.data[0]["mac_address"]
 
     # MAC spoofing check
     existing = db.table("sessions").select("id, ip_address").eq(

@@ -145,7 +145,7 @@ async def reconnect_by_phone(phone: str, request: Request):
         # All slots have MACs — check which ones are inactive (not seen in last 5 mins)
         from utils import utcnow as _now
         import datetime
-        five_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=5)).isoformat()
+        five_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(seconds=30)).isoformat()
         for s in active_sessions:
             if s["mac_address"]:
                 dev = db.table("devices").select("last_seen_at").eq(

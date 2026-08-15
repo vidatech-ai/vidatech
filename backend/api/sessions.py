@@ -229,10 +229,10 @@ async def expired_macs():
     ).eq("status", "terminated").gt("terminated_at", two_mins_ago).execute()
     terminated = [s["mac_address"] for s in terminated_result.data if s["mac_address"]] if terminated_result.data else []
 
-    # Blocked devices
+    # Blocked devices seen in last 2 minutes (still connected)
     blocked_result = db.table("devices").select(
         "mac_address"
-    ).eq("status", "blocked").execute()
+    ).eq("status", "blocked").gt("last_seen_at", two_mins_ago).execute()
     blocked = [d["mac_address"] for d in blocked_result.data if d["mac_address"]] if blocked_result.data else []
 
     all_macs = list(set(expired + terminated + blocked))

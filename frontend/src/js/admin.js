@@ -242,7 +242,7 @@ function filterDevices(filter, btn) {
 
 async function deauthClient(mac) {
   if (!confirm(`Deauth ${mac}?`)) return;
-  const result = await api(`/api/sessions/${encodeURIComponent(mac)}/deauth`, { method: 'POST' });
+  const result = await api(`/api/sessions/deauth/${encodeURIComponent(mac)}`, { method: 'POST' });
   if (result) { alert('Device deauthed.'); loadRouterStatus(); }
 }
 

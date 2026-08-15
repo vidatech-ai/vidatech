@@ -445,7 +445,7 @@ async function loadRouterStatus() {
   if (!data) return;
   const tbody = document.getElementById('routerClientsTable');
   if (!data.client_length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No clients connected.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No clients connected.</td></tr>';
     return;
   }
   tbody.innerHTML = Object.values(data.clients).map(c => `
@@ -456,6 +456,12 @@ async function loadRouterStatus() {
       <td>${(c.downloaded / 1024).toFixed(1)} MB</td>
       <td>${(c.uploaded / 1024).toFixed(1)} MB</td>
       <td class="mono" style="font-size:11px">${c.token}</td>
+      <td>
+        ${c.state === 'Authenticated'
+          ? `<button class="action-btn danger" onclick="deauthClient('${c.mac}')">Deauth</button>`
+          : `<button class="action-btn" onclick="grantAccess('${c.mac}')">Auth</button>`
+        }
+      </td>
     </tr>`).join('');
 }
 
@@ -616,6 +622,22 @@ function filterDevices(filter, btn) {
   else if (filter === 'unpaid') list = allDevices.filter(d => !d._paid && d.status !== 'blocked');
   else if (filter === 'blocked') list = allDevices.filter(d => d.status === 'blocked');
   renderDevices(list);
+}
+
+async function deauthClient(mac) {
+  if (!confirm(`Deauth ${mac}?`)) return;
+  const result = await api(`/api/sessions/deauth/${encodeURIComponent(mac)}`, { method: 'POST' });
+  if (result) { alert('Device deauthed.'); loadRouterStatus(); }
+}
+
+async function grantAccess(mac) {
+  const minutes = prompt('Grant access for how many minutes?', '60');
+  if (!minutes) return;
+  const result = await api(`/api/sessions/grant/${mac}`, {
+    method: 'POST',
+    body: JSON.stringify({ minutes: parseInt(minutes) }),
+  });
+  if (result) { alert(`Access granted for ${minutes} minutes.`); loadDevices(); }
 }
 
 async function blockDevice(id) {

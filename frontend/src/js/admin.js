@@ -16,6 +16,12 @@ async function loadRouterStatus() {
       <td>${((c.downloaded ?? 0) / 1024).toFixed(1)} MB</td>
       <td>${((c.uploaded ?? 0) / 1024).toFixed(1)} MB</td>
       <td class="mono" style="font-size:11px">${c.token ?? '—'}</td>
+      <td>
+        ${c.state === 'Authenticated'
+          ? `<button class="action-btn danger" onclick="deauthClient('${c.mac}')">Deauth</button>`
+          : `<button class="action-btn" onclick="grantAccess('${c.mac}')">Auth</button>`
+        }
+      </td>
     </tr>`).join('');
 }
 
@@ -232,6 +238,12 @@ function filterDevices(filter, btn) {
   else if (filter === 'unpaid') list = allDevices.filter(d => !d._paid && d.status !== 'blocked');
   else if (filter === 'blocked') list = allDevices.filter(d => d.status === 'blocked');
   renderDevices(list);
+}
+
+async function deauthClient(mac) {
+  if (!confirm(`Deauth ${mac}?`)) return;
+  const result = await api(`/api/sessions/${encodeURIComponent(mac)}/deauth`, { method: 'POST' });
+  if (result) { alert('Device deauthed.'); loadRouterStatus(); }
 }
 
 async function grantAccess(mac) {

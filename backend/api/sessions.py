@@ -239,6 +239,34 @@ async def expired_macs():
     return {"macs": all_macs}
 
 
+@router.post("/deauth/{mac_address:path}")
+async def deauth_client(mac_address: str, admin=Depends(require_admin)):
+    """Admin instantly deauths a live router client."""
+    import httpx
+    mac_address = mac_address.lower()
+    db = get_db()
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.get(f"http://192.168.2.1/cgi-bin/auth?deauth={mac_address}", timeout=3)
+    except Exception:
+        pass
+    db.table("sessions").update({
+        "status": "terminated",
+        "terminated_at": utcnow().isoformat(),
+        "termination_reason": "admin_action",
+    }).eq("mac_address", mac_address).eq("status", "active").execute()
+    db.table("devices").update({"status": "blocked"}).eq("mac_address", mac_address).execute()
+    db.table("audit_logs").insert({
+        "actor_id": admin["sub"],
+        "actor_role": admin["role"],
+        "action": "deauth",
+        "target_table": "devices",
+        "target_id": mac_address,
+        "description": f"Admin deauthed {mac_address}.",
+    }).execute()
+    return {"message": f"Deauthed {mac_address}"}
+
+
 @router.post("/grant/{mac_address:path}")
 async def grant_session(mac_address: str, request: Request, admin=Depends(require_admin)):
     """Admin manually grants internet access to a device for a set duration."""

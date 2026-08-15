@@ -17,7 +17,7 @@ async function loadRouterStatus() {
       <td>${((c.uploaded ?? 0) / 1024).toFixed(1)} MB</td>
       <td class="mono" style="font-size:11px">${c.token ?? '—'}</td>
       <td>
-        ${c.state === 'Authenticated'
+        ${c.state?.toLowerCase() === 'authenticated'
           ? `<button class="action-btn danger" onclick="deauthClient('${c.mac}')">Deauth</button>`
           : `<button class="action-btn" onclick="grantAccess('${c.mac}')">Auth</button>`
         }

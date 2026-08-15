@@ -3,6 +3,7 @@
 # backend/api/sessions.py
 # =============================================================================
 import logging
+import datetime
 from fastapi import APIRouter, HTTPException, Depends, Request, status
 from auth.dependencies import require_admin
 from db import get_db
@@ -63,13 +64,6 @@ async def terminate_session(session_id: str, admin=Depends(require_admin)):
 
 @router.get("/reconnect-by-phone")
 async def reconnect_by_phone(phone: str, request: Request):
-    """
-    Client enters phone number to reconnect.
-    - Finds all active paid sessions for that phone
-    - Counts how many device slots are available
-    - Authorizes new MAC if slots are available
-    - Blocks reconnect if all slots are in use by online devices
-    """
     db = get_db()
     phone = normalise_phone(phone)
     if not phone:
@@ -80,19 +74,16 @@ async def reconnect_by_phone(phone: str, request: Request):
         or request.client.host
     )
 
-    # Get new MAC from requesting IP
     dev_result = db.table("devices").select("mac_address").eq(
         "ip_address", client_ip
     ).limit(1).execute()
     new_mac = dev_result.data[0]["mac_address"].lower() if dev_result.data else None
 
-    # Find all active sessions for this phone
     sess_result = db.table("sessions").select(
         "id, expires_at, mac_address, packages(name)"
     ).eq("phone", phone).eq("status", "active").order("expires_at", desc=True).execute()
 
     if not sess_result.data:
-        # Try via payments table
         pay_result = db.table("payments").select("id").eq(
             "phone", phone
         ).eq("status", "confirmed").execute()
@@ -114,7 +105,6 @@ async def reconnect_by_phone(phone: str, request: Request):
     if not active_sessions:
         return {"allowed": False, "reason": "session_expired"}
 
-    # Check if new MAC already has a session
     for s in active_sessions:
         if s["mac_address"] and s["mac_address"].lower() == new_mac:
             return {
@@ -127,14 +117,9 @@ async def reconnect_by_phone(phone: str, request: Request):
                 "slots_total": len(active_sessions),
             }
 
-    # Count slots: total paid sessions = total device slots
     total_slots = len(active_sessions)
-
-    # Find sessions with MACs not currently online in nodogsplash
-    # We do this by checking which MACs have been seen recently
     assigned_macs = [s["mac_address"] for s in active_sessions if s["mac_address"]]
 
-    # Find available slot — session whose MAC is offline or unassigned
     available_session = None
     for s in active_sessions:
         if not s["mac_address"]:
@@ -142,9 +127,6 @@ async def reconnect_by_phone(phone: str, request: Request):
             break
 
     if not available_session:
-        # All slots have MACs — check which ones are inactive (not seen in last 5 mins)
-        from utils import utcnow as _now
-        import datetime
         five_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(seconds=30)).isoformat()
         for s in active_sessions:
             if s["mac_address"]:
@@ -163,11 +145,9 @@ async def reconnect_by_phone(phone: str, request: Request):
             "message": f"All {total_slots} device slot(s) are currently in use. Disconnect another device first."
         }
 
-    # Assign new MAC to available session — deauth old MAC first
     if new_mac:
         old_mac = available_session.get("mac_address")
         if old_mac and old_mac != new_mac:
-            # Mark old session MAC as replaced
             import httpx
             try:
                 async with httpx.AsyncClient() as hclient:
@@ -204,37 +184,93 @@ async def reconnect_by_phone(phone: str, request: Request):
 async def active_macs():
     """
     Called by router agent every 30 seconds.
-    Returns list of MACs with active paid sessions — agent calls ndsctl auth on these.
+    Returns list of MACs with active paid sessions — excludes blocked devices.
     """
     db = get_db()
     now = utcnow().isoformat()
+
+    blocked_result = db.table("devices").select("mac_address").eq("status", "blocked").execute()
+    blocked = set(d["mac_address"] for d in blocked_result.data if d["mac_address"]) if blocked_result.data else set()
+
     result = db.table("sessions").select(
         "mac_address"
     ).eq("status", "active").gt("expires_at", now).execute()
-    macs = [s["mac_address"] for s in result.data if s["mac_address"]]
+    macs = [s["mac_address"] for s in result.data if s["mac_address"] and s["mac_address"] not in blocked]
     return {"macs": macs}
 
 
 @router.get("/expired-macs")
 async def expired_macs():
     """
-    Called by router cron job every 5 minutes.
-    Returns list of MACs whose sessions have expired but may still be authenticated on router.
+    Called by router agent every 30 seconds.
+    Returns MACs to deauth: expired + admin-terminated + blocked devices.
     """
     db = get_db()
     now = utcnow().isoformat()
-    result = db.table("sessions").select(
+    two_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=2)).isoformat()
+
+    # Expired sessions
+    expired_result = db.table("sessions").select(
         "mac_address"
     ).eq("status", "active").lt("expires_at", now).execute()
-    if result.data:
-        expired = [s["mac_address"] for s in result.data if s["mac_address"]]
+
+    expired = []
+    if expired_result.data:
+        expired = [s["mac_address"] for s in expired_result.data if s["mac_address"]]
         db.table("sessions").update({
             "status": "expired",
             "terminated_at": now,
             "termination_reason": "expired",
         }).eq("status", "active").lt("expires_at", now).execute()
-        return {"macs": expired}
-    return {"macs": []}
+
+    # Admin-terminated sessions in last 2 minutes
+    terminated_result = db.table("sessions").select(
+        "mac_address"
+    ).eq("status", "terminated").gt("terminated_at", two_mins_ago).execute()
+    terminated = [s["mac_address"] for s in terminated_result.data if s["mac_address"]] if terminated_result.data else []
+
+    # Blocked devices
+    blocked_result = db.table("devices").select(
+        "mac_address"
+    ).eq("status", "blocked").execute()
+    blocked = [d["mac_address"] for d in blocked_result.data if d["mac_address"]] if blocked_result.data else []
+
+    all_macs = list(set(expired + terminated + blocked))
+    return {"macs": all_macs}
+
+
+@router.post("/grant/{mac_address:path}")
+async def grant_session(mac_address: str, request: Request, admin=Depends(require_admin)):
+    """Admin manually grants internet access to a device for a set duration."""
+    db = get_db()
+    body = await request.json()
+    minutes = int(body.get("minutes", 60))
+    mac_address = mac_address.lower()
+
+    expires = (datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)).isoformat()
+
+    db.table("sessions").insert({
+        "mac_address": mac_address,
+        "status": "active",
+        "started_at": utcnow().isoformat(),
+        "expires_at": expires,
+        "phone": "admin_grant",
+        "termination_reason": None,
+    }).execute()
+
+    db.table("devices").update({"status": "allowed"}).eq("mac_address", mac_address).execute()
+
+    db.table("audit_logs").insert({
+        "actor_id": admin["sub"],
+        "actor_role": admin["role"],
+        "action": "grant",
+        "target_table": "sessions",
+        "target_id": mac_address,
+        "description": f"Admin granted {minutes} minutes to {mac_address}.",
+    }).execute()
+
+    logger.info(f"Admin granted {minutes}min to {mac_address}")
+    return {"message": f"Granted {minutes} minutes to {mac_address}", "expires_at": expires}
 
 
 @router.get("/check/{mac_address:path}")
@@ -277,68 +313,3 @@ async def check_session(mac_address: str):
         "paid_at": session["created_at"],
         "package": session["packages"]["name"] if session.get("packages") else "—",
     }
-async def check_session(mac_address: str):
-    """
-    Portal gateway calls this to check if a device has an active paid session.
-    Returns allowed: true/false.
-    """
-    db = get_db()
-    mac_address = mac_address.lower()
-
-    result = db.table("sessions").select(
-        "id, status, expires_at, created_at, packages(name)"
-    ).eq(
-        "mac_address", mac_address
-    ).order("expires_at", desc=True).limit(1).execute()
-
-    if not result.data:
-        return {"allowed": False, "reason": "not_found"}
-
-    session = result.data[0]
-
-    if session["expires_at"] < utcnow().isoformat():
-        db.table("sessions").update({
-            "status": "expired",
-            "terminated_at": utcnow().isoformat(),
-            "termination_reason": "expired",
-        }).eq("id", session["id"]).execute()
-        return {
-            "allowed": False,
-            "reason": "expired",
-            "paid_at": session["created_at"],
-            "expired_at": session["expires_at"],
-            "package": session["packages"]["name"] if session.get("packages") else "—",
-        }
-
-    return {
-        "allowed": True,
-        "expires_at": session["expires_at"],
-        "paid_at": session["created_at"],
-        "package": session["packages"]["name"] if session.get("packages") else "—",
-    }
-    """
-    Portal gateway calls this to check if a device has an active paid session.
-    Returns allowed: true/false.
-    """
-    db = get_db()
-    mac_address = mac_address.lower()
-
-    result = db.table("sessions").select("id, status, expires_at").eq(
-        "mac_address", mac_address
-    ).eq("status", "active").order("expires_at", desc=True).limit(1).execute()
-
-    if not result.data:
-        return {"allowed": False}
-
-    session = result.data[0]
-
-    if session["expires_at"] < utcnow().isoformat():
-        # Expire it
-        db.table("sessions").update({
-            "status": "expired",
-            "terminated_at": utcnow().isoformat(),
-            "termination_reason": "expired",
-        }).eq("id", session["id"]).execute()
-        return {"allowed": False}
-
-    return {"allowed": True, "expires_at": session["expires_at"]}

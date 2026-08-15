@@ -204,7 +204,10 @@ function renderDevices(list) {
 
     const actionBtn = blocked
       ? `<button class="action-btn" onclick="allowDevice('${d.id}')">Unblock</button>`
-      : `<button class="action-btn danger" onclick="blockDevice('${d.id}')">Block</button>`;
+      : `<div style="display:flex;gap:6px">
+           <button class="action-btn danger" onclick="blockDevice('${d.id}')">Block</button>
+           ${!d._paid ? `<button class="action-btn" onclick="grantAccess('${d.mac_address}')">Grant</button>` : ''}
+         </div>`;
 
     return `
       <tr>
@@ -229,6 +232,19 @@ function filterDevices(filter, btn) {
   else if (filter === 'unpaid') list = allDevices.filter(d => !d._paid && d.status !== 'blocked');
   else if (filter === 'blocked') list = allDevices.filter(d => d.status === 'blocked');
   renderDevices(list);
+}
+
+async function grantAccess(mac) {
+  const minutes = prompt('Grant access for how many minutes?', '60');
+  if (!minutes) return;
+  const result = await api(`/api/sessions/grant/${mac}`, {
+    method: 'POST',
+    body: JSON.stringify({ minutes: parseInt(minutes) }),
+  });
+  if (result) {
+    alert(`Access granted for ${minutes} minutes.`);
+    loadDevices();
+  }
 }
 
 async function blockDevice(id) {

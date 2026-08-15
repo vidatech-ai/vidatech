@@ -46,8 +46,8 @@ async def terminate_session(session_id: str, admin=Depends(require_admin)):
 
     session = result.data[0]
 
-    # Block device
-    db.table("devices").update({"status": "blocked"}).eq("mac_address", session["mac_address"]).execute()
+    # Update device status to unknown (not blocked — admin must explicitly block)
+    db.table("devices").update({"status": "unknown"}).eq("mac_address", session["mac_address"]).execute()
 
     db.table("audit_logs").insert({
         "actor_id": admin["sub"],

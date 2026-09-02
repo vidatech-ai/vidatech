@@ -39,20 +39,42 @@ async def device_heartbeat(request: Request):
     return {"ok": True}
 
 
-_router_status_cache = {"client_length": 0, "clients": {}, "updated_at": None}
+_router_status_cache = {"clients": [], "status": {}, "updated_at": None}
 
 @router.post("/router-status")
 async def push_router_status(request: Request):
-    """Called by router every 30 seconds to push live nodogsplash data."""
+    """Called by router agent every 5 seconds to push connected clients and status."""
     global _router_status_cache
     body = await request.json()
     body["updated_at"] = utcnow().isoformat()
     _router_status_cache = body
+
+    # Update last_seen_at for each connected device in DB
+    db = get_db()
+    for client in body.get("clients", []):
+        mac = (client.get("mac") or "").lower().strip()
+        ip = client.get("ip") or ""
+        if not mac:
+            continue
+        existing = db.table("devices").select("id", "status").eq("mac_address", mac).limit(1).execute()
+        if existing.data:
+            db.table("devices").update({
+                "ip_address": ip,
+                "last_seen_at": utcnow().isoformat(),
+            }).eq("mac_address", mac).execute()
+        else:
+            db.table("devices").insert({
+                "mac_address": mac,
+                "ip_address": ip,
+                "status": "unknown",
+                "last_seen_at": utcnow().isoformat(),
+            }).execute()
+
     return {"ok": True}
 
 @router.get("/router-status")
 async def router_status():
-    """Returns cached router status pushed by the router."""
+    """Returns cached router status — live clients and router health."""
     return _router_status_cache
 
 

@@ -3,7 +3,7 @@ async function loadRouterStatus() {
   const data = await api('/api/devices/router-status');
   if (!data) return;
   const tbody = document.getElementById('routerClientsTable');
-  const clients = data.clients ? Object.values(data.clients) : [];
+  const clients = Array.isArray(data.clients) ? data.clients : [];
   if (!clients.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No clients connected.</td></tr>';
     return;
@@ -12,15 +12,12 @@ async function loadRouterStatus() {
     <tr>
       <td class="mono">${c.mac ?? '—'}</td>
       <td class="mono">${c.ip ?? '—'}</td>
-      <td><span class="badge ${c.state === 'Authenticated' ? 'badge-success' : 'badge-warning'}">${c.state ?? '—'}</span></td>
-      <td>${((c.downloaded ?? 0) / 1024).toFixed(1)} MB</td>
-      <td>${((c.uploaded ?? 0) / 1024).toFixed(1)} MB</td>
-      <td class="mono" style="font-size:11px">${c.token ?? '—'}</td>
+      <td><span class="badge badge-success">Connected</span></td>
+      <td>—</td>
+      <td>—</td>
+      <td class="mono" style="font-size:11px">—</td>
       <td>
-        ${c.state?.toLowerCase() === 'authenticated'
-          ? `<button class="action-btn danger" onclick="deauthClient('${c.mac}')">Deauth</button>`
-          : `<button class="action-btn" onclick="grantAccess('${c.mac}')">Auth</button>`
-        }
+        <button class="action-btn danger" onclick="deauthClient('${c.mac}')">Block</button>
       </td>
     </tr>`).join('');
 }

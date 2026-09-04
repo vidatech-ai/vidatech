@@ -17,6 +17,11 @@ settings = get_settings()
 PAYSTACK_BASE_URL = "https://api.paystack.co"
 
 
+class PaystackError(Exception):
+    """Raised when Paystack rejects or fails to process a charge."""
+    pass
+
+
 def _to_paystack_phone(phone: str) -> str:
     """Paystack Mobile Money expects +2547XXXXXXXX format."""
     if not phone.startswith("+"):
@@ -52,22 +57,38 @@ async def initiate_stk_push(
 
     logger.info(f"Paystack charge payload: {payload}")
     async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{PAYSTACK_BASE_URL}/charge",
-            json=payload,
-            headers={
-                "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
+        try:
+            response = await client.post(
+                f"{PAYSTACK_BASE_URL}/charge",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
+                    "Content-Type": "application/json",
+                },
+                timeout=30,
+            )
+        except httpx.TimeoutException:
+            logger.error("Paystack request timed out")
+            raise PaystackError("Payment request timed out. Please try again.")
+        except httpx.RequestError as e:
+            logger.error(f"Paystack network error: {e}")
+            raise PaystackError("Could not reach payment provider. Please try again.")
+
         if response.status_code >= 400:
             logger.error(f"Paystack raw error: {response.text}")
-        response.raise_for_status()
+            try:
+                err_body = response.json()
+            except ValueError:
+                err_body = {}
+            friendly = err_body.get("data", {}).get("message") or err_body.get("message") or "Payment could not be processed."
+            raise PaystackError(friendly)
+
         data = response.json()
 
     if not data.get("status"):
-        raise Exception(f"Paystack error: {data.get('message', 'Unknown error')} | full response: {data}")
+        friendly = data.get("message", "Payment could not be processed.")
+        logger.error(f"Paystack error: {friendly} | full response: {data}")
+        raise PaystackError(friendly)
 
     reference = data["data"]["reference"]
     logger.info(f"STK push initiated: {reference} → {phone}")

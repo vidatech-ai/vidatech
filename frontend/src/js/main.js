@@ -145,7 +145,13 @@ async function handlePayment() {
   if (!phone) { alert('Enter your M-Pesa number.'); return; }
   if (!selectedPkg.id) { alert('Select a package first.'); return; }
 
-  // MAC resolved by backend from client IP if not available
+  if (!_clientMac) {
+    await fetchClientMac(3, 1000);
+  }
+  if (!_clientMac) {
+    alert("Couldn't detect your device. Reconnect to the WiFi and try again.");
+    return;
+  }
 
   const btn = document.getElementById('payBtn');
   btn.disabled = true;

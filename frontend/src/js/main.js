@@ -1,3 +1,4 @@
+
 // ─── CONFIG & SHARED HELPERS ────────────────────────
 const API = 'https://vidatech-wifi.onrender.com';
 let token = localStorage.getItem('vt_token');
@@ -160,13 +161,7 @@ async function handlePayment() {
   if (!phone) { alert('Enter your M-Pesa number.'); return; }
   if (!selectedPkg.id) { alert('Select a package first.'); return; }
 
-  if (!_clientMac) {
-    await fetchClientMac(3, 1000);
-    if (!_clientMac) {
-      alert('Could not identify your device. Please reconnect to WiFi and try again.');
-      return;
-    }
-  }
+  // MAC resolved by backend from client IP if not available
 
   const btn = document.getElementById('payBtn');
   btn.disabled = true;

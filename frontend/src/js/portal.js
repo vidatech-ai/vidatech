@@ -251,10 +251,10 @@ function showActiveSession(phone, data) {
 async function reconnectSession() {
   const phone = document.getElementById('sessionPhone').textContent.replace(/\s/g,'');
   try {
-    const res = await fetch(`${API}/api/sessions/active?phone=${phone}`);
+    const res = await fetch(`${API}/api/sessions/reconnect-by-phone?phone=${encodeURIComponent(phone)}`);
     const data = await res.json();
-    if (data && data.length > 0) {
-      alert('You are already connected!');
+    if (data.allowed) {
+      showActiveSession(phone, data);
     } else {
       document.getElementById('stateConnected').style.display = 'none';
       document.getElementById('stateExpired').style.display = 'block';

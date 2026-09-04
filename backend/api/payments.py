@@ -57,11 +57,24 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
     )
     mac_address = body.mac_address
     if not mac_address or mac_address == "00:00:00:00:00:00":
+        # Try DB first
         device_result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
-        if device_result.data:
+        if device_result.data and device_result.data[0]["mac_address"] not in (None, "00:00:00:00:00:00"):
             mac_address = device_result.data[0]["mac_address"]
         else:
-            mac_address = "00:00:00:00:00:00"
+            # Ask router directly via ARP lookup
+            try:
+                import httpx
+                async with httpx.AsyncClient() as hclient:
+                    r = await hclient.get(
+                        "http://192.168.2.1/cgi-bin/getmac_by_ip",
+                        params={"ip": client_ip, "token": "vidatech2026secret"},
+                        timeout=3,
+                    )
+                    rdata = r.json()
+                    mac_address = rdata.get("mac") or "00:00:00:00:00:00"
+            except Exception:
+                mac_address = "00:00:00:00:00:00"
 
     # Create pending payment record
     payment_result = db.table("payments").insert({

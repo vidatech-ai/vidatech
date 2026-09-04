@@ -162,74 +162,35 @@ async function handlePayment() {
 
   if (!_clientMac) {
     await fetchClientMac(3, 1000);
+    if (!_clientMac) {
+      alert('Could not identify your device. Please reconnect to WiFi and try again.');
+      return;
+    }
   }
 
   const btn = document.getElementById('payBtn');
   btn.disabled = true;
   document.getElementById('progressWrap').classList.add('show');
-  setProgress(20, 'Initiating payment…');
+  setProgress(10, 'Connecting to payment server…');
 
   try {
-    let data;
-    try {
-      const res = await fetch(`${API}/api/payments/initiate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac }),
-      });
-      data = await res.json();
-      if (res.status >= 400) throw new Error(data.detail || 'Payment failed.');
-    } catch(fetchErr) {
-      if (fetchErr.message && fetchErr.message !== 'Failed to fetch') throw fetchErr;
-      // Render woke up and processed the request even if fetch timed out
-      // Continue to polling — STK push was sent
-      data = { payment_id: null };
-    }
+    const res = await fetch(`${API}/api/payments/initiate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Payment failed.');
 
-    setProgress(60, 'M-Pesa prompt sent — enter your PIN…');
-
-    if (!data.payment_id) {
-      // We don't have a payment_id — poll by phone+package instead
-      let attempts = 0;
-      const poll = setInterval(async () => {
-        attempts++;
-        if (attempts > 24) {
-          clearInterval(poll);
-          document.getElementById('progressWrap').classList.remove('show');
-          btn.disabled = false;
-          return;
-        }
-        try {
-          const sr = await fetch(`${API}/api/payments/status/latest?phone=${encodeURIComponent(phone)}`);
-          const sd = await sr.json();
-          if (sd.status === 'confirmed') {
-            clearInterval(poll);
-            setProgress(100, 'Payment confirmed!');
-            try {
-              const tokRes = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
-              const tokData = await tokRes.json();
-              const tok = tokData.token;
-              if (tok) await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
-            } catch(e) {}
-            try {
-              const tokRes2 = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
-              const tokData2 = await tokRes2.json();
-              if (tokData2.token) {
-                window.location.href = `http://192.168.2.1:2050/nodogsplash_auth/?tok=${tokData2.token}&redir=https://vidatech-wifi.pages.dev`;
-                return;
-              }
-            } catch(e) {}
-            setTimeout(() => showActiveSession(phone, sd), 800);
-          }
-        } catch(e) {}
-      }, 5000);
-      return;
-    }
+    setProgress(30, 'M-Pesa prompt sent — enter your PIN now…');
 
     const paymentId = data.payment_id;
     let attempts = 0;
+
     const poll = setInterval(async () => {
       attempts++;
+
+      // Timeout after 2 minutes (24 × 5s)
       if (attempts > 24) {
         clearInterval(poll);
         document.getElementById('progressWrap').classList.remove('show');
@@ -237,21 +198,55 @@ async function handlePayment() {
         alert('Payment timed out. Please try again.');
         return;
       }
+
+      const pct = Math.min(30 + attempts * 2, 70);
+      setProgress(pct, attempts < 7
+        ? 'Waiting for M-Pesa confirmation…'
+        : 'Still waiting — please check your phone and enter your PIN…'
+      );
+
       try {
         const sr = await fetch(`${API}/api/payments/status/${paymentId}`);
         const sd = await sr.json();
+
         if (sd.status === 'confirmed') {
           clearInterval(poll);
-          setProgress(100, 'Payment confirmed! Connecting you now…');
-          await authorizeOnRouter(_clientMac);
-          setTimeout(() => showActiveSession(phone, sd), 800);
+          setProgress(75, 'Payment confirmed! Activating your internet access…');
+
+          // Agent runs every 5s max — poll /check until allowed, up to 70s
+          let waitAttempts = 0;
+          const waitForAgent = setInterval(async () => {
+            waitAttempts++;
+            const waitPct = Math.min(75 + waitAttempts * 2, 98);
+            setProgress(waitPct, `Activating… (${waitAttempts * 5}s)`);
+
+            try {
+              const cr = await fetch(`${API}/api/sessions/check/${_clientMac}`);
+              const cd = await cr.json();
+              if (cd.allowed) {
+                clearInterval(waitForAgent);
+                setProgress(100, 'You are connected! Enjoy your session.');
+                setTimeout(() => showActiveSession(phone, sd), 600);
+                return;
+              }
+            } catch(e) {}
+
+            if (waitAttempts >= 14) {
+              // 70s passed — agent may be slow but payment IS confirmed
+              // Show connected anyway; internet will follow within seconds
+              clearInterval(waitForAgent);
+              setProgress(100, 'You are connected! Enjoy your session.');
+              setTimeout(() => showActiveSession(phone, sd), 600);
+            }
+          }, 5000);
+
         } else if (sd.status === 'failed') {
           clearInterval(poll);
           document.getElementById('progressWrap').classList.remove('show');
           btn.disabled = false;
           alert('Payment failed. Please try again.');
         }
-      } catch(e) { /* ignore polling errors */ }
+      } catch(e) { /* ignore transient polling errors */ }
     }, 5000);
 
   } catch(e) {

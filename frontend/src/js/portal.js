@@ -4,6 +4,9 @@
 // endpoint that reads /proc/net/arp for the requesting client's IP.
 const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1/cgi-bin/getmac';
 
+let selectedPkg = { id: '', name: '', hours: 0, speed: '', price: 0 };
+let sessionInterval = null;
+
 let _clientMac = null;
 let _macLookupFailed = false;
 
@@ -182,10 +185,10 @@ async function handlePayment() {
           clearInterval(poll);
           setProgress(90, 'Payment confirmed! Activating your session…');
           // Wait 10s for agent to auth the device
-          let countdown = 3;
+          let countdown = 15;
           const activating = setInterval(() => {
             countdown--;
-            setProgress(90 + (10 - countdown), `Activating internet access… ${countdown}s`);
+            setProgress(90 + Math.round((15 - countdown) * (10/15)), `Activating internet access… ${countdown}s`);
             if (countdown <= 0) {
               clearInterval(activating);
               setProgress(100, 'You are connected!');

@@ -40,24 +40,7 @@ async function fetchClientMac(retries = 5, delayMs = 1500, disableBtn = false) {
   }
   console.error('Could not resolve client MAC from router after retries.');
 }
-fetchClientMac(5, 1500, false).then(async () => {
-  if (!_clientMac) return;
-  try {
-    const res = await fetch(`${API}/api/sessions/check/${_clientMac}`);
-    const data = await res.json();
-    if (data.allowed) {
-      selectedPkg = {
-        id: '',
-        name: data.package || 'Active Plan',
-        hours: 0,
-        speed: '',
-        price: 0,
-      };
-      const phone = '';
-      showActiveSession(phone, data);
-    }
-  } catch(e) {}
-});
+// MAC lookup skipped — backend resolves MAC from client IP
 
 function initPortalPackages() {
   document.querySelectorAll('.pkg-big').forEach(card => {
@@ -329,13 +312,3 @@ function showPage(name, el) {
   if (loaders[name]) loaders[name]();
 }
 
-function authHeaders() {
-  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-}
-
-async function api(path, opts) {
-  const r = await fetch(`${API}${path}`, { headers: authHeaders(), ...opts });
-  if (r.status === 401) { doLogout(); return null; }
-  if (r.status === 204) return {};
-  return r.json();
-}

@@ -35,8 +35,8 @@ async function fetchClientMac(retries = 5, delayMs = 1500, disableBtn = false) {
   _clientMac = null;
   _macLookupFailed = true;
   if (payBtn) {
-    payBtn.disabled = true;
-    payBtn.textContent = 'Reconnect WiFi and retry';
+    payBtn.disabled = false;
+    payBtn.textContent = 'Pay with M-Pesa';
   }
   console.error('Could not resolve client MAC from router after retries.');
 }
@@ -73,6 +73,7 @@ function initPortalPackages() {
       };
       document.getElementById('selectedPkgLabel').textContent = selectedPkg.name;
       document.getElementById('selectedPkgPrice').textContent = 'KES ' + selectedPkg.price;
+      setTimeout(() => scrollToPay(), 300);
     });
   });
 }

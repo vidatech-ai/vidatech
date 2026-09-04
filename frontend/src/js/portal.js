@@ -115,17 +115,21 @@ async function handlePayment() {
   if (!phone) { alert('Enter your M-Pesa number.'); return; }
   if (!selectedPkg.id) { alert('Select a package first.'); return; }
 
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  document.getElementById('progressWrap').classList.add('show');
+  setProgress(5, 'Identifying your device…');
+
   if (!_clientMac) {
     await fetchClientMac(3, 1000);
     if (!_clientMac) {
+      document.getElementById('progressWrap').classList.remove('show');
+      btn.disabled = false;
       alert('Could not identify your device on the network. Please reconnect to WiFi and try again.');
       return;
     }
   }
 
-  const btn = document.getElementById('payBtn');
-  btn.disabled = true;
-  document.getElementById('progressWrap').classList.add('show');
   setProgress(10, 'Connecting to payment server…');
 
   try {

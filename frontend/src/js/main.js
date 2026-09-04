@@ -12,10 +12,10 @@ async function fetchClientMac(retries = 5, delayMs = 1500) {
   const payBtn = document.getElementById('payBtn');
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(`${API}/api/devices/my-mac`, { cache: 'no-store' });
+      const res = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
       const data = await res.json();
-      if (data.mac_address) {
-        _clientMac = data.mac_address.toLowerCase();
+      if (data.mac) {
+        _clientMac = data.mac.toLowerCase();
         _macLookupFailed = false;
         if (payBtn) payBtn.disabled = false;
         return;

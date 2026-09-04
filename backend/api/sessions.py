@@ -181,18 +181,38 @@ async def expired_macs():
 async def pending_grants():
     """
     Router polls this every 5 seconds.
-    Returns confirmed payments with no MAC assigned yet,
-    along with the client IP so the router can resolve the MAC from ARP.
+    Returns confirmed payments matched with recently seen unknown devices.
     """
     db = get_db()
+    two_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=2)).isoformat()
     five_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=5)).isoformat()
-    result = db.table("payments").select("id, ip_address, mac_address").eq(
+
+    payments = db.table("payments").select("id, phone").eq(
         "status", "confirmed"
     ).eq("mac_address", "00:00:00:00:00:00").gt("confirmed_at", five_mins_ago).execute()
-    return {"grants": [
-        {"payment_id": p["id"], "ip": p["ip_address"]}
-        for p in result.data if p.get("ip_address")
-    ]}
+
+    if not payments.data:
+        return {"grants": []}
+
+    devices = db.table("devices").select("mac_address, ip_address").eq(
+        "status", "unknown"
+    ).gt("last_seen_at", two_mins_ago).execute()
+
+    if not devices.data:
+        return {"grants": []}
+
+    grants = []
+    for p in payments.data:
+        for d in devices.data:
+            mac = d.get("mac_address")
+            if mac and mac != "00:00:00:00:00:00":
+                grants.append({
+                    "payment_id": p["id"],
+                    "mac": mac,
+                })
+                break
+
+    return {"grants": grants}
 
 
 @router.post("/confirm-grant")

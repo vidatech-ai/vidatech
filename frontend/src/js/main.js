@@ -250,19 +250,24 @@ function showActiveSession(phone, data) {
 
   if (sessionInterval) clearInterval(sessionInterval);
   sessionInterval = setInterval(() => {
+    const timerEl = document.getElementById('sessionTimer');
+    if (!timerEl) { clearInterval(sessionInterval); return; }
     const rem = expires - Date.now();
     if (rem <= 0) {
       clearInterval(sessionInterval);
-      document.getElementById('stateConnected').style.display = 'none';
-      document.getElementById('stateExpired').style.display = 'block';
-      document.getElementById('expiredDetails').innerHTML =
+      const connectedEl = document.getElementById('stateConnected');
+      const expiredEl   = document.getElementById('stateExpired');
+      const detailsEl   = document.getElementById('expiredDetails');
+      if (connectedEl) connectedEl.style.display = 'none';
+      if (expiredEl)   expiredEl.style.display = 'block';
+      if (detailsEl)   detailsEl.innerHTML =
         `Paid at: <strong>${paidAt.toLocaleString()}</strong><br>Expired at: <strong>${expires.toLocaleString()}</strong>`;
       return;
     }
     const h = Math.floor(rem / 3600000).toString().padStart(2,'0');
     const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2,'0');
     const s = Math.floor((rem % 60000) / 1000).toString().padStart(2,'0');
-    document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
+    timerEl.textContent = `${h}:${m}:${s}`;
   }, 1000);
 }
 
@@ -880,12 +885,14 @@ async function checkMySession() {
       document.getElementById('checkExpires').textContent = 'Expires ' + expires.toLocaleString();
       if (checkTimerInterval) clearInterval(checkTimerInterval);
       checkTimerInterval = setInterval(() => {
+        const timerEl = document.getElementById('checkTimer');
+        if (!timerEl) { clearInterval(checkTimerInterval); return; }
         const rem = expires - Date.now();
-        if (rem <= 0) { clearInterval(checkTimerInterval); document.getElementById('checkTimer').textContent = '00:00:00'; return; }
+        if (rem <= 0) { clearInterval(checkTimerInterval); timerEl.textContent = '00:00:00'; return; }
         const h = Math.floor(rem / 3600000).toString().padStart(2,'0');
         const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2,'0');
         const s = Math.floor((rem % 60000) / 1000).toString().padStart(2,'0');
-        document.getElementById('checkTimer').textContent = `${h}:${m}:${s}`;
+        timerEl.textContent = `${h}:${m}:${s}`;
       }, 1000);
     } else if (data.reason === 'expired' || data.reason === 'session_expired') {
       document.getElementById('checkExpired').style.display = 'block';

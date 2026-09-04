@@ -29,23 +29,7 @@ async function fetchClientMac(retries = 5, delayMs = 1500) {
   if (payBtn) payBtn.disabled = false;
   console.error('Could not resolve client MAC from router after retries.');
 }
-fetchClientMac().then(async () => {
-  if (_clientMac) {
-    try {
-      const res = await fetch(`${API}/api/sessions/check/${_clientMac}`);
-      const data = await res.json();
-      if (data.allowed) {
-        const tokRes = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
-        const tokData = await tokRes.json();
-        const tok = tokData.token;
-        if (tok) {
-          await fetch(`http://192.168.2.1/cgi-bin/auth?tok=${tok}`, { cache: 'no-store' });
-        }
-        showActiveSession('', data);
-      }
-    } catch(e) {}
-  }
-});
+// MAC lookup handled by backend via client IP
 let allDevices = [];
 let activeMacs = new Set();
 
@@ -916,7 +900,7 @@ async function checkMySession() {
   }
 }
 
-// Auto-login if token exists
-if (token) {
+// Auto-login if token exists and we are on the admin page
+if (token && document.getElementById('adminView')) {
   showAdmin();
 }

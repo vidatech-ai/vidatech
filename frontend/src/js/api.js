@@ -1,6 +1,5 @@
 // ─── CONFIG & SHARED HELPERS ────────────────────────
-const API = 'https://vidatech-wifi.onrender.com';
-let token = localStorage.getItem('vt_token');
+// API, token, selectedPkg, sessionInterval declared in main.js
 
 function authHeaders() {
   return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };

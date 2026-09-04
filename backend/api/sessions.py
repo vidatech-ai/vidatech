@@ -187,7 +187,7 @@ async def pending_grants():
     two_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=2)).isoformat()
     five_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(minutes=5)).isoformat()
 
-    payments = db.table("payments").select("id, phone").eq(
+    payments = db.table("payments").select("id, phone, ip_address").eq(
         "status", "confirmed"
     ).eq("mac_address", "00:00:00:00:00:00").gt("confirmed_at", five_mins_ago).execute()
 
@@ -201,16 +201,25 @@ async def pending_grants():
     if not devices.data:
         return {"grants": []}
 
+    # Build IP → MAC lookup from recently seen devices
+    ip_to_mac = {}
+    for d in devices.data:
+        mac = d.get("mac_address")
+        ip = d.get("ip_address")
+        if mac and ip and mac != "00:00:00:00:00:00":
+            ip_to_mac[ip] = mac
+
     grants = []
+    already_granted = set()
     for p in payments.data:
-        for d in devices.data:
-            mac = d.get("mac_address")
-            if mac and mac != "00:00:00:00:00:00":
-                grants.append({
-                    "payment_id": p["id"],
-                    "mac": mac,
-                })
-                break
+        payment_ip = p.get("ip_address")
+        mac = ip_to_mac.get(payment_ip)
+        if mac and mac not in already_granted:
+            grants.append({
+                "payment_id": p["id"],
+                "mac": mac,
+            })
+            already_granted.add(mac)
 
     return {"grants": grants}
 

@@ -217,6 +217,20 @@ async def paystack_webhook(request: Request):
     if device:
         db.table("devices").update({"status": "allowed"}).eq("id", device["id"]).execute()
 
+    # Instantly grant internet on router — don't wait for agent 30s cycle
+    if clean_mac:
+        import httpx
+        try:
+            async with httpx.AsyncClient() as hclient:
+                await hclient.get(
+                    "http://192.168.2.1/cgi-bin/vidatech_auth",
+                    params={"mac": clean_mac, "token": "vidatech2026secret"},
+                    timeout=3,
+                )
+            logger.info(f"Instant grant sent to router for {clean_mac}")
+        except Exception as e:
+            logger.warning(f"Instant grant failed (agent will sync): {e}")
+
     # Notify admin
     db.table("notifications").insert({
         "title": "New Payment Received",

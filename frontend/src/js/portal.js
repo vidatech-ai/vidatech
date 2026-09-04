@@ -161,7 +161,7 @@ async function handlePayment() {
           clearInterval(poll);
           setProgress(90, 'Payment confirmed! Activating your session…');
           // Wait 10s for agent to auth the device
-          let countdown = 10;
+          let countdown = 3;
           const activating = setInterval(() => {
             countdown--;
             setProgress(90 + (10 - countdown), `Activating internet access… ${countdown}s`);
@@ -199,7 +199,7 @@ function showActiveSession(phone, data) {
 
   const paidAt = new Date();
   // Add 10s buffer — agent needs up to 30s but we already waited 10s above
-  const expires = new Date(Date.now() + selectedPkg.hours * 3600000 + 10000);
+  const expires = new Date(Date.now() + selectedPkg.hours * 3600000 + 3000);
   document.getElementById('sessionExpires').textContent = 'Expires ' + expires.toLocaleString();
 
   if (sessionInterval) clearInterval(sessionInterval);

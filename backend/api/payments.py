@@ -11,7 +11,7 @@ from typing import Optional
 from auth.dependencies import require_admin
 from db import get_db
 from utils import normalise_phone, utcnow, hours_from_now
-from payments.paystack import initiate_stk_push, verify_webhook_signature
+from payments.paystack import initiate_stk_push, verify_webhook_signature, PaystackError
 
 logger = logging.getLogger("vidatech.payments")
 router = APIRouter()
@@ -96,8 +96,15 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
             account_ref=f"VIDATECH-{payment['id'][:8].upper()}",
             description=f"{package['name']} - Vidatech WiFi",
         )
+    except PaystackError as e:
+        logger.error(f"STK push rejected by Paystack: {e}")
+        db.table("payments").update({
+            "status": "failed",
+            "failure_reason": str(e),
+        }).eq("id", payment["id"]).execute()
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"STK push failed: {e}")
+        logger.error(f"STK push failed unexpectedly: {e}")
         db.table("payments").update({
             "status": "failed",
             "failure_reason": str(e),

@@ -149,7 +149,8 @@ async function handlePayment() {
 
   const btn = document.getElementById('payBtn');
   btn.disabled = true;
-  document.getElementById('progressWrap').classList.add('show');
+  const progressWrapEl = document.getElementById('progressWrap');
+  if (progressWrapEl) progressWrapEl.classList.add('show');
   setProgress(10, 'Connecting to payment server…');
 
   try {
@@ -229,7 +230,8 @@ async function handlePayment() {
     }, 5000);
 
   } catch(e) {
-    document.getElementById('progressWrap').classList.remove('show');
+    const progressWrap = document.getElementById('progressWrap');
+    if (progressWrap) progressWrap.classList.remove('show');
     btn.disabled = false;
     alert(e.message);
   }

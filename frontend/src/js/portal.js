@@ -37,7 +37,24 @@ async function fetchClientMac(retries = 5, delayMs = 1500, disableBtn = false) {
   }
   console.error('Could not resolve client MAC from router after retries.');
 }
-fetchClientMac(5, 1500, false);
+fetchClientMac(5, 1500, false).then(async () => {
+  if (!_clientMac) return;
+  try {
+    const res = await fetch(`${API}/api/sessions/check/${_clientMac}`);
+    const data = await res.json();
+    if (data.allowed) {
+      selectedPkg = {
+        id: '',
+        name: data.package || 'Active Plan',
+        hours: 0,
+        speed: '',
+        price: 0,
+      };
+      const phone = '';
+      showActiveSession(phone, data);
+    }
+  } catch(e) {}
+});
 
 function initPortalPackages() {
   document.querySelectorAll('.pkg-big').forEach(card => {

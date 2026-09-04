@@ -446,9 +446,10 @@ async function loadRouterStatus() {
     </tr>`).join('');
 }
 
-// Auto-refresh router status every 30 seconds
+// Auto-refresh router status every 30 seconds (admin dashboard only)
 setInterval(() => {
-  if (document.getElementById('page-dashboard').classList.contains('active')) {
+  const dashboardPage = document.getElementById('page-dashboard');
+  if (dashboardPage && dashboardPage.classList.contains('active')) {
     loadRouterStatus();
   }
 }, 30000);

@@ -228,6 +228,7 @@ function showActiveSession(phone, data) {
         '⚠️ Less than 2 minutes remaining — buy again soon!';
     }
   }, 1000);
+  setTimeout(() => { window.location.href = 'http://captive.apple.com/hotspot-detect.html'; }, 2000);
 }
 
 async function reconnectSession() {

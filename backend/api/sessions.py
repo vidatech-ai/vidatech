@@ -194,8 +194,8 @@ async def pending_grants():
     if not payments.data:
         return {"grants": []}
 
-    devices = db.table("devices").select("mac_address, ip_address").eq(
-        "status", "unknown"
+    devices = db.table("devices").select("mac_address, ip_address").in_(
+        "status", ["unknown", "active"]
     ).gt("last_seen_at", two_mins_ago).execute()
 
     if not devices.data:

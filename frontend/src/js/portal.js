@@ -7,9 +7,9 @@ const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1/cgi-bin/getmac';
 let _clientMac = null;
 let _macLookupFailed = false;
 
-async function fetchClientMac(retries = 5, delayMs = 1500) {
+async function fetchClientMac(retries = 5, delayMs = 1500, disableBtn = false) {
   const payBtn = document.getElementById('payBtn');
-  if (payBtn) payBtn.disabled = true;
+  if (payBtn && disableBtn) payBtn.disabled = true;
 
   for (let i = 0; i < retries; i++) {
     try {
@@ -18,7 +18,7 @@ async function fetchClientMac(retries = 5, delayMs = 1500) {
       if (data.mac) {
         _clientMac = data.mac.toLowerCase();
         _macLookupFailed = false;
-        if (payBtn) payBtn.disabled = false;
+        if (payBtn && disableBtn) payBtn.disabled = false;
         return;
       }
     } catch (e) {
@@ -37,7 +37,7 @@ async function fetchClientMac(retries = 5, delayMs = 1500) {
   }
   console.error('Could not resolve client MAC from router after retries.');
 }
-fetchClientMac();
+fetchClientMac(5, 1500, false);
 
 function initPortalPackages() {
   document.querySelectorAll('.pkg-big').forEach(card => {

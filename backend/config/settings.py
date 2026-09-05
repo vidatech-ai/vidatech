@@ -38,7 +38,9 @@ class Settings(BaseSettings):
     # Allowed CORS origins (your Cloudflare Pages URL goes here)
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",                      # local dev
-        "https://REPLACE_WITH_YOUR_CLOUDFLARE_PAGES_URL",
+        "https://vidatech-wifi.pages.dev",
+        "https://vidatech-wifi.onrender.com",
+        "http://192.168.2.1",
     ]
 
     # -------------------------------------------------------------------------

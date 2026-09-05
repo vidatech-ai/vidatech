@@ -49,6 +49,8 @@ async def push_router_status(request: Request):
     body["updated_at"] = utcnow().isoformat()
     _router_status_cache = body
 
+    public_ip = (body.get("public_ip") or "").strip()
+
     # Update last_seen_at for each connected device in DB
     db = get_db()
     for client in body.get("clients", []):
@@ -58,16 +60,20 @@ async def push_router_status(request: Request):
             continue
         existing = db.table("devices").select("id", "status").eq("mac_address", mac).limit(1).execute()
         if existing.data:
-            db.table("devices").update({
+            update_data = {
                 "ip_address": ip,
                 "last_seen_at": utcnow().isoformat(),
-            }).eq("mac_address", mac).execute()
+            }
+            if public_ip:
+                update_data["session_token"] = public_ip
+            db.table("devices").update(update_data).eq("mac_address", mac).execute()
         else:
             db.table("devices").insert({
                 "mac_address": mac,
                 "ip_address": ip,
                 "status": "unknown",
                 "last_seen_at": utcnow().isoformat(),
+                "session_token": public_ip if public_ip else None,
             }).execute()
 
     return {"ok": True}

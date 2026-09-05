@@ -6,7 +6,7 @@ let selectedPkg = { id: null, name: '', hours: 0, speed: '', price: 0 };
 let sessionInterval = null;
 
 const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1/cgi-bin/getmac';  // same URL, fetch changes below
-let _clientMac = null; document.addEventListener('DOMContentLoaded', function() { _clientMac = new URLSearchParams(window.location.search).get('mac') || null; });
+let _clientMac = new URLSearchParams(window.location.search).get('mac') || null;
 
 let _macLookupFailed = false;
 
@@ -158,7 +158,7 @@ async function handlePayment() {
     const res = await fetch(`${API}/api/payments/initiate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: '00:00:00:00:00:00' }),
+      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac || '00:00:00:00:00:00' }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Payment failed.');

@@ -7,6 +7,10 @@ let sessionInterval = null;
 
 const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1/cgi-bin/getmac';  // same URL, fetch changes below
 let _clientMac = new URLSearchParams(window.location.search).get('mac') || null;
+if (!_clientMac && window.location.protocol === 'https:') {
+  // Bounce through router to get MAC then come back
+  window.location.href = 'http://192.168.2.1/?redirect=' + encodeURIComponent(window.location.href);
+}
 let _macLookupFailed = false;
 
 async function fetchClientMac(retries = 5, delayMs = 1500) {

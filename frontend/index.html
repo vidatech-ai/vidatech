@@ -4,9 +4,24 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Vidatech WiFi — Fast Internet, Wherever You Are</title>
-<link rel="icon" type="image/svg+xml" href="src/assets/favicon.svg" />
+<link rel="icon" type="image/svg+xml" href="https://vidatech-wifi.pages.dev/src/assets/favicon.svg" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="src/css/main.css" />
+<link rel="stylesheet" href="https://vidatech-wifi.pages.dev/src/css/main.css" />
+<script>
+(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '/cgi-bin/getmac', false);
+  try {
+    xhr.send();
+    var data = JSON.parse(xhr.responseText);
+    if (data.mac) {
+      var url = new URL(window.location.href);
+      url.searchParams.set('mac', data.mac);
+      history.replaceState(null, '', url.toString());
+    }
+  } catch(e) {}
+})();
+</script>
 </head>
 <body>
 <div id="portalView">
@@ -74,7 +89,7 @@
     <p class="section-sub">From zero to online in under a minute.</p>
 
     <div class="how-image-wrap">
-      <img class="how-image" src="src/assets/images/network-cables.jpg" alt="Network fiber cables" loading="lazy" />
+      <img class="how-image" src="https://vidatech-wifi.pages.dev/src/assets/images/network-cables.jpg" alt="Network fiber cables" loading="lazy" />
     </div>
 
     <div class="how-steps">
@@ -158,7 +173,7 @@
 
   <!-- SCROLL IMAGE: connectivity -->
   <section class="scroll-image-band">
-    <img src="src/assets/images/global-connectivity.jpg" alt="Global connectivity" loading="lazy" />
+    <img src="https://vidatech-wifi.pages.dev/src/assets/images/global-connectivity.jpg" alt="Global connectivity" loading="lazy" />
     <div class="scroll-image-caption">Connected wherever you are</div>
   </section>
 
@@ -168,7 +183,7 @@
     <h2 class="section-headline">Check Your Session</h2>
     <p class="section-sub">Enter your M-Pesa number to check your connection status.</p>
     <div class="check-image-wrap">
-      <img class="check-image" src="src/assets/images/person-connected.jpg" alt="Person connected on phone" loading="lazy" />
+      <img class="check-image" src="https://vidatech-wifi.pages.dev/src/assets/images/person-connected.jpg" alt="Person connected on phone" loading="lazy" />
     </div>
     <div style="max-width:400px;margin:0 auto">
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px">
@@ -212,7 +227,7 @@
 
   <!-- SCROLL IMAGE: speed/reliability -->
   <section class="scroll-image-band">
-    <img src="src/assets/images/high-speed-network.jpg" alt="High speed network" loading="lazy" />
+    <img src="https://vidatech-wifi.pages.dev/src/assets/images/high-speed-network.jpg" alt="High speed network" loading="lazy" />
     <div class="scroll-image-caption">Fast. Reliable. Always on.</div>
   </section>
 
@@ -300,6 +315,6 @@
 
 
 
-<script src="src/js/main.js"></script>
+<script src="https://vidatech-wifi.pages.dev/src/js/main.js?v=2"></script>
 </body>
 </html>

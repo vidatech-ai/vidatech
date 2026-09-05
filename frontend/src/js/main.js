@@ -145,13 +145,7 @@ async function handlePayment() {
   if (!phone) { alert('Enter your M-Pesa number.'); return; }
   if (!selectedPkg.id) { alert('Select a package first.'); return; }
 
-  if (!_clientMac) {
-    await fetchClientMac(3, 1000);
-  }
-  if (!_clientMac) {
-    alert("Couldn't detect your device. Reconnect to the WiFi and try again.");
-    return;
-  }
+  // MAC resolved by backend via pending-grants after payment confirmation
 
   const btn = document.getElementById('payBtn');
   btn.disabled = true;
@@ -163,7 +157,7 @@ async function handlePayment() {
     const res = await fetch(`${API}/api/payments/initiate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: _clientMac }),
+      body: JSON.stringify({ phone, package_id: selectedPkg.id, mac_address: '00:00:00:00:00:00' }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Payment failed.');

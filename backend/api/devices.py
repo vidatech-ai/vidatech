@@ -105,21 +105,18 @@ async def authorize_device(request: Request):
             return {"authorized": False, "reason": "client_not_found"}
     except Exception as e:
         return {"authorized": False, "reason": str(e)}
-    """Returns the MAC address of the requesting device based on IP."""
+@router.get("/my-mac")
+async def my_mac(request: Request):
+    """Returns the MAC address of the requesting device based on IP lookup in devices table."""
     db = get_db()
     client_ip = (
         request.headers.get("x-forwarded-for", "").split(",")[0].strip()
         or request.client.host
     )
-    # Try exact IP match first
     result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
-    if result.data:
+    if result.data and result.data[0]["mac_address"] not in (None, "00:00:00:00:00:00"):
         return {"mac_address": result.data[0]["mac_address"]}
-    # Fallback: return most recently seen device
-    result = db.table("devices").select("mac_address").order("last_seen_at", desc=True).limit(1).execute()
-    if not result.data:
-        return {"mac_address": None}
-    return {"mac_address": result.data[0]["mac_address"]}
+    return {"mac_address": None}
 
 @router.get("/")
 async def list_devices(admin=Depends(require_admin)):

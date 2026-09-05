@@ -6,17 +6,17 @@ let selectedPkg = { id: null, name: '', hours: 0, speed: '', price: 0 };
 let sessionInterval = null;
 
 const ROUTER_MAC_ENDPOINT = 'http://192.168.2.1/cgi-bin/getmac';  // same URL, fetch changes below
-let _clientMac = null;
+let _clientMac = new URLSearchParams(window.location.search).get('mac') || null;
 let _macLookupFailed = false;
 
 async function fetchClientMac(retries = 5, delayMs = 1500) {
   const payBtn = document.getElementById('payBtn');
   for (let i = 0; i < retries; i++) {
     try {
-      const res = await fetch(`http://192.168.2.1/cgi-bin/getmac`, { cache: 'no-store' });
+      const res = await fetch(`${API}/api/devices/my-mac`, { cache: 'no-store' });
       const data = await res.json();
-      if (data.mac) {
-        _clientMac = data.mac.toLowerCase();
+      if (data.mac_address && data.mac_address !== '00:00:00:00:00:00') {
+        _clientMac = data.mac_address.toLowerCase();
         _macLookupFailed = false;
         if (payBtn) payBtn.disabled = false;
         return;
@@ -27,7 +27,7 @@ async function fetchClientMac(retries = 5, delayMs = 1500) {
   _clientMac = null;
   _macLookupFailed = false;
   if (payBtn) payBtn.disabled = false;
-  console.error('Could not resolve client MAC from router after retries.');
+  console.error('Could not resolve client MAC from backend after retries.');
 }
 // MAC lookup handled by backend via client IP
 let allDevices = [];

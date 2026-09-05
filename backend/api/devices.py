@@ -105,15 +105,36 @@ async def authorize_device(request: Request):
             return {"authorized": False, "reason": "client_not_found"}
     except Exception as e:
         return {"authorized": False, "reason": str(e)}
-@router.get("/my-mac")
-async def my_mac(request: Request):
-    """Returns the MAC address of the requesting device based on IP lookup in devices table."""
-    db = get_db()
+@router.post("/register-mac")
+async def register_mac(request: Request):
+    """Called by portal redirect page to bind public IP to MAC."""
+    body = await request.json()
+    mac = (body.get("mac") or "").lower().strip()
+    if not mac or mac == "00:00:00:00:00:00":
+        return {"ok": False}
     client_ip = (
         request.headers.get("x-forwarded-for", "").split(",")[0].strip()
         or request.client.host
     )
-    result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
+    db = get_db()
+    db.table("devices").update({
+        "session_token": client_ip,
+    }).eq("mac_address", mac).execute()
+    logger.info(f"register-mac: {mac} → public IP {client_ip}")
+    return {"ok": True}
+
+
+@router.get("/my-mac")
+async def my_mac(request: Request):
+    """Returns MAC by matching public IP stored at redirect time."""
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or request.client.host
+    )
+    db = get_db()
+    result = db.table("devices").select("mac_address").eq(
+        "session_token", client_ip
+    ).order("last_seen_at", desc=True).limit(1).execute()
     if result.data and result.data[0]["mac_address"] not in (None, "00:00:00:00:00:00"):
         return {"mac_address": result.data[0]["mac_address"]}
     return {"mac_address": None}

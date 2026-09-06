@@ -76,6 +76,14 @@ async def push_router_status(request: Request):
                 "session_token": public_ip if public_ip else None,
             }).execute()
 
+    # Mark devices not in current push as offline if last seen > 10s ago
+    current_macs = set((c.get("mac") or "").lower().strip() for c in body.get("clients", []) if c.get("mac"))
+    import datetime
+    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(seconds=10)).isoformat()
+    offline_candidates = db.table("devices").select("mac_address").eq("status", "online").lt("last_seen_at", cutoff).execute()
+    for dev in (offline_candidates.data or []):
+        if dev["mac_address"] not in current_macs:
+            db.table("devices").update({"status": "offline"}).eq("mac_address", dev["mac_address"]).execute()
     return {"ok": True}
 
 @router.get("/router-status")

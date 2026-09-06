@@ -111,10 +111,14 @@ async def reconnect_by_phone(phone: str, request: Request):
                     available_session = s
                     break
     if not available_session:
+        best = active_sessions[0]
         return {
             "allowed": False,
             "reason": "all_slots_in_use",
             "slots_total": total_slots,
+            "expires_at": best["expires_at"],
+            "package": best["packages"]["name"] if best.get("packages") else "—",
+            "phone": phone,
             "message": f"All {total_slots} device slot(s) are currently in use. Disconnect another device first."
         }
     if new_mac:

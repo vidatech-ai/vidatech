@@ -875,8 +875,33 @@ async function checkMySession() {
 
     if (data.allowed) {
       await authorizeOnRouter(data.mac_address);
-    } else if (data.reason === 'all_slots_in_use') {
-      alert(data.message);
+    }
+    if (data.reason === 'all_slots_in_use' && data.expires_at) {
+      const expires = new Date(data.expires_at);
+      document.getElementById('checkResult').style.display = 'block';
+      document.getElementById('checkActive').style.display = 'block';
+      document.getElementById('checkPkg').textContent = data.package ?? '—';
+      document.getElementById('checkExpires').textContent = 'Expires ' + expires.toLocaleString();
+      document.getElementById('checkTimer').textContent = '00:00:00';
+      if (checkTimerInterval) clearInterval(checkTimerInterval);
+      checkTimerInterval = setInterval(() => {
+        const timerEl = document.getElementById('checkTimer');
+        if (!timerEl) { clearInterval(checkTimerInterval); return; }
+        const rem = expires - Date.now();
+        if (rem <= 0) { clearInterval(checkTimerInterval); timerEl.textContent = '00:00:00'; return; }
+        const h = Math.floor(rem / 3600000).toString().padStart(2,'0');
+        const m = Math.floor((rem % 3600000) / 60000).toString().padStart(2,'0');
+        const s = Math.floor((rem % 60000) / 1000).toString().padStart(2,'0');
+        timerEl.textContent = h+':'+m+':'+s;
+      }, 1000);
+      const notice = document.getElementById('checkActive').querySelector('.wifi-notice');
+      if (!notice) {
+        const div = document.createElement('div');
+        div.className = 'wifi-notice';
+        div.style = 'margin-top:12px;font-size:13px;color:var(--muted);text-align:center;line-height:1.6';
+        div.innerHTML = '<strong style="color:#facc15">📶!</strong> The <strong style="color:#facc15">!</strong> on your WiFi icon is normal — close this popup and start browsing. It will disappear on its own.';
+        document.getElementById('checkActive').appendChild(div);
+      }
       return;
     }
 

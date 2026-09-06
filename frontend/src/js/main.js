@@ -530,10 +530,10 @@ async function loadDevices() {
     });
   }
 
-  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const thirtySecsAgo = new Date(Date.now() - 30 * 1000);
 
   allDevices = devData
-    .filter(d => d.last_seen_at && new Date(d.last_seen_at) > tenMinutesAgo)
+    .filter(d => d.last_seen_at && new Date(d.last_seen_at) > thirtySecsAgo)
     .map(d => ({
       ...d,
       _paid: activeMacs.has((d.mac_address || '').toLowerCase()),

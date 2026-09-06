@@ -63,6 +63,7 @@ async def push_router_status(request: Request):
             update_data = {
                 "ip_address": ip,
                 "last_seen_at": utcnow().isoformat(),
+                "hostname": client.get("hostname") or None,
             }
             if public_ip:
                 update_data["session_token"] = public_ip

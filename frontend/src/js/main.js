@@ -898,6 +898,11 @@ async function checkMySession() {
         const s = Math.floor((rem % 60000) / 1000).toString().padStart(2,'0');
         timerEl.textContent = `${h}:${m}:${s}`;
       }, 1000);
+      // Also show full session UI
+      selectedPkg.name = data.package ?? '—';
+      selectedPkg.speed = '—';
+      selectedPkg.hours = 0;
+      showActiveSession(phone, {});
     } else if (data.reason === 'expired' || data.reason === 'session_expired') {
       document.getElementById('checkExpired').style.display = 'block';
       document.getElementById('checkExpiredDetails').innerHTML =

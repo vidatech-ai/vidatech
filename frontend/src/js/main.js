@@ -1,6 +1,6 @@
 
 // ─── CONFIG & SHARED HELPERS ────────────────────────
-const API = 'https://vidatech-wifi.onrender.com';
+const API = window.location.hostname === '192.168.2.1' ? 'http://192.168.2.1/cgi-bin/proxy' : 'https://vidatech-wifi.onrender.com';
 let token = localStorage.getItem('vt_token');
 let selectedPkg = { id: null, name: '', hours: 0, speed: '', price: 0 };
 let sessionInterval = null;

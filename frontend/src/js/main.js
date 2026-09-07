@@ -356,7 +356,7 @@ function showPage(name, el) {
   const loaders = {
     sessions: loadSessions, users: loadUsers, devices: loadDevices,
     packages: loadPackages, payments: loadPaymentsTable,
-    security: loadSecurity, audit: loadAudit,
+    security: loadSecurity, audit: loadAudit, reports: loadAnalytics,
   };
   if (loaders[name]) loaders[name]();
 }
@@ -937,6 +937,44 @@ async function checkMySession() {
   }
 }
 
+
+// ─── ANALYTICS ──────────────────────────────────────
+let _revenueChart = null, _pkgChart = null, _hourChart = null;
+async function loadAnalytics() {
+  const data = await api('/api/reports/analytics');
+  if (!data) return;
+  document.getElementById('statPeakHour').textContent = data.peak_hour !== null ? `${data.peak_hour}:00` : '—';
+  document.getElementById('statTopPkg').textContent = data.package_popularity?.[0]?.name ?? '—';
+  document.getElementById('statTopCustomer').textContent = data.top_customer ? data.top_customer.slice(-6) : '—';
+  document.getElementById('statTotalDevices').textContent = data.total_devices ?? '—';
+
+  const labels30 = data.daily_revenue.map(d => d.date.slice(5));
+  const vals30   = data.daily_revenue.map(d => d.kes);
+  if (_revenueChart) _revenueChart.destroy();
+  _revenueChart = new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: { labels: labels30, datasets: [{ label: 'KES', data: vals30, backgroundColor: 'rgba(99,102,241,0.7)', borderRadius: 4 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  const pkgLabels = data.package_popularity.map(p => p.name);
+  const pkgVals   = data.package_popularity.map(p => p.sales);
+  if (_pkgChart) _pkgChart.destroy();
+  _pkgChart = new Chart(document.getElementById('pkgChart'), {
+    type: 'bar',
+    data: { labels: pkgLabels, datasets: [{ label: 'Sales', data: pkgVals, backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+
+  const hourLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
+  const hourVals   = hourLabels.map((_, i) => data.hour_distribution[i] ?? 0);
+  if (_hourChart) _hourChart.destroy();
+  _hourChart = new Chart(document.getElementById('hourChart'), {
+    type: 'bar',
+    data: { labels: hourLabels, datasets: [{ label: 'Payments', data: hourVals, backgroundColor: 'rgba(251,191,36,0.7)', borderRadius: 4 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
 // Auto-login if token exists and we are on the admin page
 if (token && document.getElementById('adminView')) {
   showAdmin();

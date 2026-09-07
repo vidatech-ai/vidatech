@@ -89,3 +89,55 @@ async def audit_logs(limit: int = 100, admin=Depends(require_admin)):
     db = get_db()
     result = db.table("audit_logs").select("*").order("created_at", desc=True).limit(limit).execute()
     return result.data
+
+@router.get("/analytics")
+async def analytics(admin=Depends(require_admin)):
+    db = get_db()
+    # Total devices
+    total_devices = db.table("devices").select("id", count="exact").execute()
+    # Top customer by payment count
+    payments_all = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").execute()
+    customer_count = {}
+    customer_spend = {}
+    for p in payments_all.data:
+        ph = p["phone"]
+        customer_count[ph] = customer_count.get(ph, 0) + 1
+        customer_spend[ph] = customer_spend.get(ph, 0) + p["amount_kes"]
+    top_customer = max(customer_count, key=customer_count.get) if customer_count else None
+    # Peak hour
+    confirmed = db.table("payments").select("confirmed_at").eq("status", "confirmed").execute()
+    hour_count = {}
+    for p in confirmed.data:
+        if p["confirmed_at"]:
+            h = int(p["confirmed_at"][11:13])
+            hour_count[h] = hour_count.get(h, 0) + 1
+    peak_hour = max(hour_count, key=hour_count.get) if hour_count else None
+    # Daily revenue last 30 days
+    import datetime
+    days = []
+    for i in range(29, -1, -1):
+        d = (datetime.datetime.utcnow() - datetime.timedelta(days=i)).date().isoformat()
+        days.append(d)
+    daily = db.table("payments").select("amount_kes, confirmed_at").eq("status", "confirmed").gte("confirmed_at", days[0]).execute()
+    daily_map = {d: 0 for d in days}
+    for p in daily.data:
+        if p["confirmed_at"]:
+            d = p["confirmed_at"][:10]
+            if d in daily_map:
+                daily_map[d] += p["amount_kes"]
+    # Package popularity
+    pkg_sales = db.table("payments").select("packages(name), amount_kes").eq("status", "confirmed").execute()
+    pkg_count = {}
+    for p in pkg_sales.data:
+        name = p["packages"]["name"] if p["packages"] else "Unknown"
+        pkg_count[name] = pkg_count.get(name, 0) + 1
+    return {
+        "total_devices": total_devices.count,
+        "top_customer": top_customer,
+        "top_customer_payments": customer_count.get(top_customer, 0) if top_customer else 0,
+        "top_customer_spend": customer_spend.get(top_customer, 0) if top_customer else 0,
+        "peak_hour": peak_hour,
+        "hour_distribution": hour_count,
+        "daily_revenue": [{"date": d, "kes": daily_map[d]} for d in days],
+        "package_popularity": [{"name": k, "sales": v} for k, v in sorted(pkg_count.items(), key=lambda x: x[1], reverse=True)],
+    }

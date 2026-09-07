@@ -6,6 +6,7 @@
 <title>Vidatech — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="src/css/main.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <!-- ═══════════════════════════════════════════════
@@ -324,14 +325,28 @@
     <!-- ANALYTICS -->
     <div class="page" id="page-reports">
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">—</div><div class="stat-label">Peak Hour</div></div>
-        <div class="stat-card"><div class="stat-icon">👑</div><div class="stat-value" id="topPkg">—</div><div class="stat-label">Top Package</div></div>
-        <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value">—</div><div class="stat-label">Top Customer</div></div>
-        <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-value" id="totalDevices">—</div><div class="stat-label">Total Devices</div></div>
+        <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value" id="statPeakHour">—</div><div class="stat-label">Peak Hour</div></div>
+        <div class="stat-card"><div class="stat-icon">👑</div><div class="stat-value" id="statTopPkg">—</div><div class="stat-label">Top Package</div></div>
+        <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value" id="statTopCustomer">—</div><div class="stat-label">Top Customer</div></div>
+        <div class="stat-card"><div class="stat-icon">📱</div><div class="stat-value" id="statTotalDevices">—</div><div class="stat-label">Total Devices</div></div>
+      </div>
+      <div class="section-card" style="margin-bottom:24px">
+        <div class="section-header"><div class="section-title">Daily Revenue — Last 30 Days</div></div>
+        <div style="padding:24px;overflow-x:auto">
+          <canvas id="revenueChart" height="120"></canvas>
+        </div>
+      </div>
+      <div class="section-card" style="margin-bottom:24px">
+        <div class="section-header"><div class="section-title">Package Popularity</div></div>
+        <div style="padding:24px;overflow-x:auto">
+          <canvas id="pkgChart" height="120"></canvas>
+        </div>
       </div>
       <div class="section-card">
-        <div class="section-header"><div class="section-title">Analytics</div></div>
-        <div style="padding:48px;text-align:center;color:var(--muted);font-size:14px">Revenue charts, peak hour heatmaps, and device usage graphs render here once connected to the live backend.</div>
+        <div class="section-header"><div class="section-title">Peak Hours Distribution</div></div>
+        <div style="padding:24px;overflow-x:auto">
+          <canvas id="hourChart" height="120"></canvas>
+        </div>
       </div>
     </div>
 

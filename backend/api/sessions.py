@@ -328,3 +328,31 @@ async def check_session(mac_address: str):
         "paid_at": session["created_at"],
         "package": session["packages"]["name"] if session.get("packages") else "—",
     }
+
+
+@router.post("/grant/{mac}")
+async def grant_access(mac: str, body: dict, admin=Depends(require_admin)):
+    """Manually grant internet access to a device without payment."""
+    from auth.dependencies import require_admin
+    db = get_db()
+    minutes = int(body.get("minutes", 60))
+    mac = mac.lower().strip()
+    import datetime
+    expires = (datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)).isoformat()
+    # Create a manual session
+    result = db.table("sessions").insert({
+        "mac_address": mac,
+        "phone": "admin-grant",
+        "status": "active",
+        "started_at": utcnow().isoformat(),
+        "expires_at": expires,
+    }).execute()
+    if not result.data:
+        return {"ok": False, "error": "Failed to create session"}
+    # Log it
+    db.table("audit_logs").insert({
+        "action": "manual_grant",
+        "target": mac,
+        "metadata": {"minutes": minutes, "expires_at": expires},
+    }).execute()
+    return {"ok": True, "expires_at": expires}

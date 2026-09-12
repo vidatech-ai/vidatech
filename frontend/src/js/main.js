@@ -580,7 +580,10 @@ function renderDevices(list) {
 
     const actionBtn = blocked
       ? `<button class="action-btn" onclick="allowDevice('${d.id}')">Unblock</button>`
-      : `<button class="action-btn danger" onclick="blockDevice('${d.id}')">Block</button>`;
+      : d._paid
+        ? `<button class="action-btn danger" onclick="blockDevice('${d.id}')">Block</button>`
+        : `<button class="action-btn" onclick="blockDevice('${d.id}')">Block</button>
+           <button class="action-btn" style="background:var(--success);color:#fff;margin-left:4px" onclick="grantAccess('${mac}')">Grant</button>`;
 
     return `
       <tr>

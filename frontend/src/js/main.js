@@ -146,6 +146,18 @@ async function handlePayment() {
   if (!phone) { alert('Enter your M-Pesa number.'); return; }
   if (!selectedPkg.id) { alert('Select a package first.'); return; }
 
+  // If no MAC and not on router, warn user
+  if (!_clientMac && window.location.hostname !== '192.168.2.1') {
+    const isLaptop = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isLaptop) {
+      alert('⚠️ For laptops: Please connect to Vidatech WiFi @7 Bob first, then open 192.168.2.1 in your browser to pay. This ensures your internet is activated automatically.');
+      return;
+    } else {
+      alert('⚠️ Please make sure you are connected to Vidatech WiFi @7 Bob before paying. Disconnect from any other network and try again.');
+      return;
+    }
+  }
+
   // MAC resolved by backend via pending-grants after payment confirmation
 
   const btn = document.getElementById('payBtn');

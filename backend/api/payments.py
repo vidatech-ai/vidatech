@@ -221,17 +221,30 @@ async def paystack_webhook(request: Request):
 
     # Create session — use null MAC if unknown so reconnect-by-phone can assign it
     clean_mac = mac_address if mac_address and mac_address != "00:00:00:00:00:00" else None
-    session_result = db.table("sessions").insert({
-        "payment_id": payment["id"],
-        "package_id": package["id"],
-        "mac_address": clean_mac,
-        "ip_address": device["ip_address"] if device else None,
-        "phone": payment["phone"],
-        "status": "active",
-        "started_at": utcnow().isoformat(),
-        "expires_at": hours_from_now(package["duration_hours"]).isoformat(),
-    }).execute()
-    session = session_result.data[0]
+    import time
+    session = None
+    for _attempt in range(3):
+        try:
+            session_result = db.table("sessions").insert({
+                "payment_id": payment["id"],
+                "package_id": package["id"],
+                "mac_address": clean_mac,
+                "ip_address": device["ip_address"] if device else None,
+                "phone": payment["phone"],
+                "status": "active",
+                "started_at": utcnow().isoformat(),
+                "expires_at": hours_from_now(package["duration_hours"]).isoformat(),
+            }).execute()
+            if session_result.data:
+                session = session_result.data[0]
+                break
+            logger.error(f"Session insert returned no data on attempt {_attempt+1} for payment {payment['id']}")
+        except Exception as _e:
+            logger.error(f"Session insert error on attempt {_attempt+1}: {_e}")
+        time.sleep(1)
+    if not session:
+        logger.error(f"CRITICAL: Failed to create session for payment {payment['id']} after 3 attempts")
+        return {"status": "ok"}
 
     # Mark device allowed
     if device:

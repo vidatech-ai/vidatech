@@ -366,7 +366,7 @@ function showPage(name, el) {
   };
   document.getElementById('pageTitle').textContent = titles[name] || name;
   const loaders = {
-    sessions: loadSessions, users: loadUsers, devices: loadDevices,
+    sessions: () => { loadSessions(); if(window._sessRefresh) clearInterval(window._sessRefresh); window._sessRefresh = setInterval(loadSessions, 10000); }, users: loadUsers, devices: () => { loadDevices(); if(window._devRefresh) clearInterval(window._devRefresh); window._devRefresh = setInterval(loadDevices, 10000); },
     packages: loadPackages, payments: loadPaymentsTable,
     security: loadSecurity, audit: loadAudit, reports: loadAnalytics,
   };
@@ -386,6 +386,8 @@ async function api(path, opts) {
 
 // ─── DASHBOARD ──────────────────────────────────────
 async function loadDashboard() {
+  if(window._dashRefresh) clearInterval(window._dashRefresh);
+  window._dashRefresh = setInterval(loadDashboard, 15000);
   loadRouterStatus();
   const data = await api('/api/reports/dashboard');
   if (!data) return;
@@ -766,6 +768,8 @@ async function deletePackage(id) {
 
 // ─── PAYMENTS ───────────────────────────────────────
 async function loadPaymentsTable() {
+  if(window._payRefresh) clearInterval(window._payRefresh);
+  window._payRefresh = setInterval(loadPaymentsTable, 15000);
   const data = await api('/api/payments/');
   if (!data) return;
   const tbody = document.getElementById('paymentsTable');

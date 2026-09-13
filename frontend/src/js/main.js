@@ -366,7 +366,7 @@ function showPage(name, el) {
   };
   document.getElementById('pageTitle').textContent = titles[name] || name;
   const loaders = {
-    sessions: () => { loadSessions(); if(window._sessRefresh) clearInterval(window._sessRefresh); window._sessRefresh = setInterval(loadSessions, 10000); }, users: loadUsers, devices: () => { loadDevices(); if(window._devRefresh) clearInterval(window._devRefresh); window._devRefresh = setInterval(loadDevices, 10000); },
+    sessions: () => { loadSessions(); if(window._sessRefresh) clearInterval(window._sessRefresh); window._sessRefresh = setInterval(loadSessions, 30000); }, users: loadUsers, devices: () => { loadDevices(); if(window._devRefresh) clearInterval(window._devRefresh); window._devRefresh = setInterval(loadDevices, 30000); },
     packages: loadPackages, payments: loadPaymentsTable,
     security: loadSecurity, audit: loadAudit, reports: loadAnalytics,
   };

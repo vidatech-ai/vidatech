@@ -77,7 +77,7 @@
             var st = document.getElementById("topCustStats");
             if(d.phone){
               ph.textContent = d.phone;
-              st.textContent = d.payments + " session" + (d.payments !== 1 ? "s" : "") + " · KES " + d.spend.toLocaleString() + " this month";
+              st.textContent = d.payments + " session" + (d.payments !== 1 ? "s" : "") + " this month";
             } else {
               ph.textContent = "No data yet";
               st.textContent = "Be the first this month!";

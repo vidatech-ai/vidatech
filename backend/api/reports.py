@@ -166,5 +166,4 @@ async def top_customer_public():
     return {
         "phone": masked,
         "payments": customer_count[top],
-        "spend": customer_spend[top],
     }

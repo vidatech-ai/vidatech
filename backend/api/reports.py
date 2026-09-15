@@ -148,7 +148,7 @@ async def top_customer_public():
     """Public endpoint — returns masked top customer info for portal display."""
     db = get_db()
     import datetime
-    EXCLUDED = {"254113259315", "0113259315"}
+    EXCLUDED = {"254113259315", "0113259315", "254716954156", "0716954156"}
     month_start = datetime.datetime.utcnow().replace(day=1).date().isoformat()
     payments = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
     customer_count = {}

@@ -440,18 +440,33 @@ async function loadRouterStatus() {
   const data = await api('/api/devices/router-status');
   if (!data) return;
   const tbody = document.getElementById('routerClientsTable');
-  if (!data.client_length) {
+  const clients = Array.isArray(data.clients) ? data.clients : Object.values(data.clients || {});
+  if (!clients.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No clients connected.</td></tr>';
     return;
   }
-  tbody.innerHTML = Object.values(data.clients).map(c => `
+  // Show router health bar above table
+  const s = data.status || {};
+  const updatedAt = data.updated_at ? new Date(data.updated_at).toLocaleTimeString() : '—';
+  const memPct = s.mem_total ? Math.round((1 - s.mem_free/s.mem_total)*100) : 0;
+  const uptimeMins = s.uptime ? Math.floor(s.uptime/60) : 0;
+  document.getElementById('routerHealthBar') && (document.getElementById('routerHealthBar').innerHTML = `
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px">
+      <span>📶 <strong style="color:#fff">${s.ssid || '—'}</strong></span>
+      <span>📡 Ch ${s.channel || '—'} · ${s.signal || '—'}</span>
+      <span>🕒 Uptime: ${uptimeMins}m</span>
+      <span>💾 RAM: ${memPct}% used</span>
+      <span>🌐 ${data.public_ip || '—'}</span>
+      <span style="margin-left:auto">Updated: ${updatedAt}</span>
+    </div>`);
+  tbody.innerHTML = clients.map(c => `
     <tr>
       <td class="mono">${c.mac}</td>
       <td class="mono">${c.ip}</td>
-      <td><span class="badge ${c.state === 'Authenticated' ? 'badge-success' : 'badge-warning'}">${c.state}</span></td>
-      <td>${(c.downloaded / 1024).toFixed(1)} MB</td>
-      <td>${(c.uploaded / 1024).toFixed(1)} MB</td>
-      <td class="mono" style="font-size:11px">${c.token}</td>
+      <td>${c.hostname && c.hostname !== '*' ? c.hostname : '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${(c.downloaded != null ? (c.downloaded/1024).toFixed(1)+' MB' : '—')}</td>
+      <td>${(c.uploaded != null ? (c.uploaded/1024).toFixed(1)+' MB' : '—')}</td>
+      <td class="mono" style="font-size:11px">${c.token || '—'}</td>
       <td>
         ${c.state === 'Authenticated'
           ? `<button class="action-btn danger" onclick="deauthClient('${c.mac}')">Deauth</button>`
@@ -496,20 +511,31 @@ async function terminateSession(id) {
 
 // ─── USERS ──────────────────────────────────────────
 async function loadUsers() {
-  const data = await api('/api/users/');
+  // Users table is unused — derive subscribers from confirmed payments
+  const data = await api('/api/payments/?limit=500');
   if (!data) return;
   const tbody = document.getElementById('usersTable');
-  if (!data.length) {
+  // Deduplicate by phone, track last payment and count
+  const map = {};
+  (Array.isArray(data) ? data : (data.payments || [])).forEach(p => {
+    if (!p.phone) return;
+    if (!map[p.phone]) map[p.phone] = { phone: p.phone, count: 0, last: null, total: 0 };
+    map[p.phone].count++;
+    map[p.phone].total += (p.amount_kes || 0);
+    if (!map[p.phone].last || p.confirmed_at > map[p.phone].last) map[p.phone].last = p.confirmed_at;
+  });
+  const subs = Object.values(map).sort((a,b) => (b.last||'').localeCompare(a.last||''));
+  if (!subs.length) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No subscribers yet.</td></tr>';
     return;
   }
-  tbody.innerHTML = data.map(u => `
+  tbody.innerHTML = subs.map(u => `
     <tr>
-      <td>${u.full_name ?? '—'}</td>
       <td class="mono">${u.phone}</td>
-      <td>${statusBadge(u.status)}</td>
-      <td style="font-size:12px;color:var(--muted)">${u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never'}</td>
-      <td><button class="action-btn danger" onclick="suspendUser('${u.id}')">Suspend</button></td>
+      <td><span class="badge badge-success">Active</span></td>
+      <td style="font-size:12px;color:var(--muted)">${u.count} payment${u.count !== 1 ? 's' : ''}</td>
+      <td style="font-size:12px;color:var(--muted)">KES ${u.total.toLocaleString()}</td>
+      <td style="font-size:12px;color:var(--muted)">${u.last ? new Date(u.last).toLocaleString() : '—'}</td>
     </tr>`).join('');
 }
 

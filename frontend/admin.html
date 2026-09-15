@@ -182,10 +182,11 @@
           <div class="section-title">🔴 Live Router Clients</div>
           <button class="action-btn" onclick="loadRouterStatus()">↻ Refresh</button>
         </div>
+        <div id="routerHealthBar"></div>
         <div class="table-scroll">
         <table>
           <thead><tr>
-            <th>MAC Address</th><th>IP</th><th>State</th><th>Downloaded</th><th>Uploaded</th><th>Token</th><th>Action</th>
+            <th>MAC Address</th><th>IP</th><th>Hostname</th><th>Downloaded</th><th>Uploaded</th><th>Token</th><th>Action</th>
           </tr></thead>
           <tbody id="routerClientsTable">
             <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
@@ -222,7 +223,7 @@
         <div class="table-scroll">
         <table>
           <thead><tr>
-            <th>Name</th><th>Phone</th><th>Status</th><th>Last Login</th><th>Actions</th>
+            <th>Phone</th><th>Status</th><th>Payments</th><th>Total Spent</th><th>Last Payment</th>
           </tr></thead>
           <tbody id="usersTable">
             <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>

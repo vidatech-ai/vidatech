@@ -95,15 +95,18 @@ async def analytics(admin=Depends(require_admin)):
     db = get_db()
     # Total devices
     total_devices = db.table("devices").select("id", count="exact").execute()
-    # Top customer by payment count
+    # Top customer by total spend (excluding admin numbers)
+    EXCLUDED = {"254113259315", "0113259315", "254716954156", "0716954156"}
     payments_all = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").execute()
     customer_count = {}
     customer_spend = {}
     for p in payments_all.data:
         ph = p["phone"]
+        if ph in EXCLUDED:
+            continue
         customer_count[ph] = customer_count.get(ph, 0) + 1
         customer_spend[ph] = customer_spend.get(ph, 0) + p["amount_kes"]
-    top_customer = max(customer_count, key=customer_count.get) if customer_count else None
+    top_customer = max(customer_spend, key=customer_spend.get) if customer_spend else None
     # Peak hour
     confirmed = db.table("payments").select("confirmed_at").eq("status", "confirmed").execute()
     hour_count = {}

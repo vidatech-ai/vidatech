@@ -159,11 +159,12 @@ async def top_customer_public():
             continue
         customer_count[ph] = customer_count.get(ph, 0) + 1
         customer_spend[ph] = customer_spend.get(ph, 0) + p["amount_kes"]
-    if not customer_count:
-        return {"phone": None, "payments": 0, "spend": 0}
-    top = max(customer_count, key=customer_count.get)
+    if not customer_spend:
+        return {"phone": None, "payments": 0, "spend_masked": None}
+    top = max(customer_spend, key=customer_spend.get)
     masked = top[:5] + "****" + top[-2:]
     return {
         "phone": masked,
         "payments": customer_count[top],
+        "spend_masked": "KES ****",
     }

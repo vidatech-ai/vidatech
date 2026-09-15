@@ -62,7 +62,7 @@
             <span style="font-size:20px">👑</span>
             <span style="font-family:var(--font-head);font-size:13px;font-weight:800;color:#10b981;letter-spacing:0.3px;text-transform:uppercase">This Month's Leader</span>
           </div>
-          <p style="font-size:12.5px;color:#fff;line-height:1.7;margin:0">Current top customer: <strong id="topCustPhone" style="color:#10b981">Loading…</strong><br><span id="topCustStats" style="color:rgba(255,255,255,0.6);font-size:11.5px"></span></p>
+          <p style="font-size:12.5px;color:#fff;line-height:1.7;margin:0">🎉 <strong id="topCustPhone" style="color:#10b981">Loading…</strong><br><span id="topCustCongrats" style="color:#fbbf24;font-size:11.5px;font-weight:600"></span><br><span id="topCustStats" style="color:rgba(255,255,255,0.6);font-size:11.5px"></span></p>
         </div>
       </div>
       <script>
@@ -75,11 +75,14 @@
           .then(function(d){
             var ph = document.getElementById("topCustPhone");
             var st = document.getElementById("topCustStats");
+            var cg = document.getElementById("topCustCongrats");
             if(d.phone){
               ph.textContent = d.phone;
-              st.textContent = d.payments + " session" + (d.payments !== 1 ? "s" : "") + " this month";
+              cg.textContent = "Congrats! Keep it up 🔥";
+              st.textContent = d.payments + " session" + (d.payments !== 1 ? "s" : "") + " · Spent: " + (d.spend_masked || "KES ****") + " this month";
             } else {
-              ph.textContent = "No data yet";
+              ph.textContent = "No leader yet";
+              cg.textContent = "";
               st.textContent = "Be the first this month!";
             }
           })

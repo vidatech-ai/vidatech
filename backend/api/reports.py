@@ -141,3 +141,27 @@ async def analytics(admin=Depends(require_admin)):
         "daily_revenue": [{"date": d, "kes": daily_map[d]} for d in days],
         "package_popularity": [{"name": k, "sales": v} for k, v in sorted(pkg_count.items(), key=lambda x: x[1], reverse=True)],
     }
+
+
+@router.get("/top-customer-public")
+async def top_customer_public():
+    """Public endpoint — returns masked top customer info for portal display."""
+    db = get_db()
+    import datetime
+    month_start = datetime.datetime.utcnow().replace(day=1).date().isoformat()
+    payments = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
+    customer_count = {}
+    customer_spend = {}
+    for p in payments.data:
+        ph = p["phone"]
+        customer_count[ph] = customer_count.get(ph, 0) + 1
+        customer_spend[ph] = customer_spend.get(ph, 0) + p["amount_kes"]
+    if not customer_count:
+        return {"phone": None, "payments": 0, "spend": 0}
+    top = max(customer_count, key=customer_count.get)
+    masked = top[:5] + "****" + top[-2:]
+    return {
+        "phone": masked,
+        "payments": customer_count[top],
+        "spend": customer_spend[top],
+    }

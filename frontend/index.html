@@ -42,7 +42,7 @@
       <div class="hero-badge" style="margin-top:10px;background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:var(--success)">
         ✅ Tested &amp; Working — Pay and start browsing in under 30 seconds
       </div>
-      <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:560px;width:100%">
+      <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;max-width:820px;width:100%">
         <div style="background:rgba(0,0,0,0.55);backdrop-filter:blur(12px);border:1.5px solid rgba(251,191,36,0.5);border-radius:16px;padding:18px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:8px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:20px">⚡</span>
@@ -57,7 +57,37 @@
           </div>
           <p style="font-size:12.5px;color:#fff;line-height:1.7;margin:0">Our top customer every month wins <strong style="color:#a78bfa">1 full day of FREE internet</strong> — awarded on the 1st of every month. Keep browsing and claim your reward!</p>
         </div>
+        <div id="topCustomerBox" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(12px);border:1.5px solid rgba(16,185,129,0.5);border-radius:16px;padding:18px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:20px">👑</span>
+            <span style="font-family:var(--font-head);font-size:13px;font-weight:800;color:#10b981;letter-spacing:0.3px;text-transform:uppercase">This Month's Leader</span>
+          </div>
+          <p style="font-size:12.5px;color:#fff;line-height:1.7;margin:0">Current top customer: <strong id="topCustPhone" style="color:#10b981">Loading…</strong><br><span id="topCustStats" style="color:rgba(255,255,255,0.6);font-size:11.5px"></span></p>
+        </div>
       </div>
+      <script>
+      (function(){
+        var api = window.location.hostname === "192.168.2.1"
+          ? "http://192.168.2.1/cgi-bin/proxy"
+          : "https://vidatech-wifi.onrender.com";
+        fetch(api + "/api/reports/top-customer-public")
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            var ph = document.getElementById("topCustPhone");
+            var st = document.getElementById("topCustStats");
+            if(d.phone){
+              ph.textContent = d.phone;
+              st.textContent = d.payments + " session" + (d.payments !== 1 ? "s" : "") + " · KES " + d.spend.toLocaleString() + " this month";
+            } else {
+              ph.textContent = "No data yet";
+              st.textContent = "Be the first this month!";
+            }
+          })
+          .catch(function(){ 
+            document.getElementById("topCustPhone").textContent = "—";
+          });
+      })();
+      </script>
 
       <h1 class="hero-headline">
         The internet<br>you <span>actually deserve</span>

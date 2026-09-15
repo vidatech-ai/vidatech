@@ -1068,3 +1068,18 @@ tr:hover td { background: rgba(14,165,233,0.03); }
   .login-title { font-size: 20px; }
   #adminPhone, #adminPassword { font-size: 16px; }
 }
+.promo-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  max-width: 820px;
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .promo-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    max-width: 100%;
+  }
+}

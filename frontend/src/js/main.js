@@ -362,13 +362,13 @@ function showPage(name, el) {
   const titles = {
     dashboard:'Dashboard', sessions:'Live Sessions', users:'Subscribers',
     devices:'All Devices', packages:'Packages', payments:'Payments',
-    reports:'Analytics', security:'Security Events', audit:'Audit Log', settings:'Settings',
+    reports:'Analytics', security:'Security Events', audit:'Audit Log', feedback:'Feedback', settings:'Settings',
   };
   document.getElementById('pageTitle').textContent = titles[name] || name;
   const loaders = {
     sessions: () => { loadSessions(); if(window._sessRefresh) clearInterval(window._sessRefresh); window._sessRefresh = setInterval(loadSessions, 30000); }, users: loadUsers, devices: () => { loadDevices(); if(window._devRefresh) clearInterval(window._devRefresh); window._devRefresh = setInterval(loadDevices, 30000); },
     packages: loadPackages, payments: loadPaymentsTable,
-    security: loadSecurity, audit: loadAudit, reports: loadAnalytics,
+    security: loadSecurity, audit: loadAudit, reports: loadAnalytics, feedback: loadFeedback,
   };
   if (loaders[name]) loaders[name]();
 }
@@ -843,6 +843,59 @@ async function loadAudit() {
       <td class="mono" style="font-size:11px">${e.ip_address ?? '—'}</td>
       <td style="font-size:12px;color:var(--muted)">${new Date(e.created_at).toLocaleString()}</td>
     </tr>`).join('');
+}
+
+// ─── FEEDBACK ───────────────────────────────────────
+async function loadFeedback() {
+  const el = document.getElementById('feedbackList');
+  el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Loading…</div>';
+  const data = await api('/api/feedback/');
+  if (!data) return;
+  // Update badge
+  const badge = document.getElementById('feedbackBadge');
+  const unanswered = data.filter(f => !f.admin_reply).length;
+  if (badge) { badge.textContent = unanswered; badge.style.display = unanswered ? '' : 'none'; }
+  if (!data.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">No feedback yet.</div>';
+    return;
+  }
+  el.innerHTML = data.map(f => {
+    const date = new Date(f.created_at).toLocaleString();
+    const phone = f.phone ? f.phone.slice(0,5) + '****' + f.phone.slice(-2) : 'Anonymous';
+    const reply = f.admin_reply
+      ? `<div style="margin-top:10px;padding:10px 14px;background:rgba(16,185,129,0.08);border-left:3px solid #10b981;border-radius:0 8px 8px 0;font-size:13px;color:rgba(255,255,255,0.8)"><div style="font-size:11px;font-weight:700;color:#10b981;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Your Reply</div>${f.admin_reply}</div>`
+      : '';
+    const replyBox = !f.admin_reply
+      ? `<div style="margin-top:10px;display:flex;gap:8px">
+          <input id="reply_${f.id}" type="text" placeholder="Type your reply…" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;outline:none" />
+          <button onclick="sendFeedbackReply('${f.id}')" class="action-btn" style="white-space:nowrap">Send Reply</button>
+        </div>`
+      : `<div style="margin-top:8px"><button onclick="editFeedbackReply('${f.id}', this)" class="action-btn" style="font-size:11px">Edit Reply</button></div>`;
+    return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">${phone} · ${date}${f.connected_at ? ' · Connected: ' + f.connected_at : ''}</div>
+      <div style="font-size:14px;color:#fff;line-height:1.6">${f.message}</div>
+      ${reply}
+      ${replyBox}
+    </div>`;
+  }).join('');
+}
+
+async function sendFeedbackReply(id) {
+  const input = document.getElementById('reply_' + id);
+  const text = input ? input.value.trim() : '';
+  if (!text) return;
+  await api('/api/feedback/' + id + '/reply', { method: 'PATCH', body: JSON.stringify({ admin_reply: text }) });
+  loadFeedback();
+}
+
+function editFeedbackReply(id, btn) {
+  const card = btn.closest('div[style*="border-radius:12px"]');
+  const replyDiv = card.querySelector('div[style*="border-left:3px solid"]');
+  const currentText = replyDiv ? replyDiv.lastChild.textContent : '';
+  btn.parentElement.innerHTML = `<div style="margin-top:10px;display:flex;gap:8px">
+    <input id="reply_${id}" type="text" value="${currentText}" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;outline:none" />
+    <button onclick="sendFeedbackReply('${id}')" class="action-btn" style="white-space:nowrap">Update</button>
+  </div>`;
 }
 
 // ─── HELPERS ────────────────────────────────────────

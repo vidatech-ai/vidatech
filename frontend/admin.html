@@ -89,6 +89,10 @@
       <button class="nav-item" onclick="showPage('audit', this)">
         <span class="icon">📋</span> Audit Log
       </button>
+      <button class="nav-item" onclick="showPage('feedback', this)">
+        <span class="icon">💬</span> Feedback
+        <span class="nav-badge" id="feedbackBadge" style="display:none">0</span>
+      </button>
 
       <div class="nav-section-label">System</div>
       <button class="nav-item" onclick="showPage('settings', this)">
@@ -389,6 +393,19 @@
     </div>
 
     <!-- SETTINGS -->
+    <!-- FEEDBACK PAGE -->
+    <div class="page" id="page-feedback">
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">💬 Customer Feedback</div>
+          <button class="action-btn" onclick="loadFeedback()">↻ Refresh</button>
+        </div>
+        <div id="feedbackList">
+          <div style="text-align:center;padding:32px;color:var(--muted)">Loading…</div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-settings">
       <div class="section-card">
         <div class="section-header"><div class="section-title">System Settings</div></div>

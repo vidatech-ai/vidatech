@@ -123,7 +123,7 @@ function submitFeedback() {
 }
 
 function loadThread() {
-  fetch(API + "/api/feedback/")
+  fetch(API + "/api/feedback/public")
   .then(function(r) { return r.json(); })
   .then(function(data) {
     var el = document.getElementById("fbThread");

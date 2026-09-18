@@ -41,6 +41,14 @@ async def submit_feedback(body: FeedbackSubmit):
     return {"ok": True}
 
 
+@router.get("/public")
+async def list_feedback_public():
+    """Public — list all feedback with replies for community board."""
+    db = get_db()
+    result = db.table("feedback").select("id, phone, connected_at, message, admin_reply, created_at").order("created_at", desc=True).execute()
+    return result.data
+
+
 @router.get("/")
 async def list_feedback(admin=Depends(require_admin)):
     """Admin only — list all feedback newest first."""

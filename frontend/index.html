@@ -63,6 +63,7 @@
             <span style="font-family:var(--font-head);font-size:13px;font-weight:800;color:#10b981;letter-spacing:0.3px;text-transform:uppercase">This Month's Leader</span>
           </div>
           <p style="font-size:12.5px;color:#fff;line-height:1.7;margin:0">🎉 <strong id="topCustPhone" style="color:#10b981">Loading…</strong><br><span id="topCustCongrats" style="color:#fbbf24;font-size:11.5px;font-weight:600"></span><br><span id="topCustStats" style="color:rgba(255,255,255,0.6);font-size:11.5px"></span></p>
+          <button onclick="document.getElementById('rankModal').style.display='flex'" style="margin-top:4px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);border-radius:8px;padding:6px 12px;color:#10b981;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">📊 Check My Position</button>
         </div>
       </div>
       <script>
@@ -382,5 +383,60 @@
 
 
 <script src="https://vidatech-wifi.pages.dev/src/js/main.js?v=3"></script>
+<!-- RANK MODAL -->
+<div id="rankModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+  <div style="background:#111118;border:1.5px solid rgba(16,185,129,0.4);border-radius:20px;padding:28px 24px;max-width:380px;width:100%;position:relative">
+    <button onclick="document.getElementById('rankModal').style.display='none'" style="position:absolute;top:14px;right:16px;background:none;border:none;color:rgba(255,255,255,0.4);font-size:20px;cursor:pointer">✕</button>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">📊 My Position</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:20px">Enter the M-Pesa number you use to pay</div>
+    <input id="rankPhone" type="tel" placeholder="07XX XXX XXX" maxlength="13" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:12px" />
+    <button onclick="checkMyRank()" style="width:100%;padding:12px;background:#10b981;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Check My Rank</button>
+    <div id="rankResult" style="margin-top:16px;display:none"></div>
+  </div>
+</div>
+
+<script>
+var _API = window.location.hostname === "192.168.2.1"
+  ? "http://192.168.2.1/cgi-bin/proxy"
+  : "https://vidatech-wifi.onrender.com";
+
+function checkMyRank() {
+  var phone = document.getElementById("rankPhone").value.trim();
+  var result = document.getElementById("rankResult");
+  if (!phone) { 
+    result.style.display = "block";
+    result.innerHTML = '<div style="color:#ef4444;font-size:13px;text-align:center">Please enter your phone number.</div>';
+    return; 
+  }
+  result.style.display = "block";
+  result.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:13px;text-align:center">Checking…</div>';
+  fetch(_API + "/api/reports/my-rank?phone=" + encodeURIComponent(phone))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d.found) {
+        result.innerHTML = '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;text-align:center">' +
+          '<div style="font-size:20px;margin-bottom:6px">😕</div>' +
+          '<div style="color:#ef4444;font-size:13px;font-weight:600">Number not found</div>' +
+          '<div style="color:rgba(255,255,255,0.45);font-size:12px;margin-top:4px">No payments found for this number this month. Start paying to join the leaderboard!</div>' +
+        '</div>';
+        return;
+      }
+      var isFirst = d.rank === 1;
+      var msg = isFirst
+        ? "🏆 You are the current leader! Keep it up to win 1 full day of FREE internet on the 1st!"
+        : "Keep paying to climb the ranks and win 1 full day of FREE internet! 💪";
+      var color = isFirst ? "#10b981" : "#fbbf24";
+      result.innerHTML = '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:12px;padding:16px;text-align:center">' +
+        '<div style="font-size:32px;font-weight:900;color:' + color + ';font-family:Space Grotesk,sans-serif;line-height:1">#' + d.rank + '</div>' +
+        '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin:2px 0 10px">out of ' + d.total + ' customer' + (d.total !== 1 ? "s" : "") + ' this month</div>' +
+        '<div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:4px">' + d.sessions + ' session' + (d.sessions !== 1 ? "s" : "") + ' · ' + d.spend_masked + ' spent</div>' +
+        '<div style="font-size:12.5px;color:' + color + ';font-weight:600;margin-top:10px;line-height:1.5">' + msg + '</div>' +
+      '</div>';
+    })
+    .catch(function(){
+      result.innerHTML = '<div style="color:#ef4444;font-size:13px;text-align:center">Could not check rank. Try again.</div>';
+    });
+}
+</script>
 </body>
 </html>

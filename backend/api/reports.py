@@ -146,6 +146,46 @@ async def analytics(admin=Depends(require_admin)):
     }
 
 
+@router.get("/my-rank")
+async def my_rank(phone: str):
+    """Public — returns a customer's rank, sessions and spend for current month."""
+    from utils import normalise_phone
+    db = get_db()
+    import datetime
+    EXCLUDED = {"254113259315", "0113259315", "254716954156", "0716954156"}
+    month_start = datetime.datetime.utcnow().replace(day=1).date().isoformat()
+    payments = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
+    customer_spend = {}
+    customer_count = {}
+    norm_input = normalise_phone(phone)
+    for p in payments.data:
+        ph = p["phone"]
+        if ph in EXCLUDED:
+            continue
+        customer_spend[ph] = customer_spend.get(ph, 0) + p["amount_kes"]
+        customer_count[ph] = customer_count.get(ph, 0) + 1
+    if not customer_spend:
+        return {"found": False}
+    # Check both normalised and raw input
+    matched = None
+    for ph in customer_spend:
+        if ph == norm_input or ph == phone or normalise_phone(ph) == norm_input:
+            matched = ph
+            break
+    if not matched:
+        return {"found": False}
+    ranked = sorted(customer_spend.keys(), key=lambda x: customer_spend[x], reverse=True)
+    rank = ranked.index(matched) + 1
+    total = len(ranked)
+    return {
+        "found": True,
+        "rank": rank,
+        "total": total,
+        "sessions": customer_count[matched],
+        "spend_masked": "KES ****",
+    }
+
+
 @router.get("/top-customer-public")
 async def top_customer_public():
     """Public endpoint — returns masked top customer info for portal display."""

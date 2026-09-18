@@ -366,7 +366,7 @@ function showPage(name, el) {
   };
   document.getElementById('pageTitle').textContent = titles[name] || name;
   const loaders = {
-    sessions: () => { loadSessions(); if(window._sessRefresh) clearInterval(window._sessRefresh); window._sessRefresh = setInterval(loadSessions, 30000); }, users: loadUsers, devices: () => { loadDevices(); if(window._devRefresh) clearInterval(window._devRefresh); window._devRefresh = setInterval(loadDevices, 30000); },
+    sessions: () => { loadSessions(); if(window._sessRefresh) clearInterval(window._sessRefresh); window._sessRefresh = setInterval(loadSessions, 10000); }, users: loadUsers, devices: () => { loadDevices(); if(window._devRefresh) clearInterval(window._devRefresh); window._devRefresh = setInterval(loadDevices, 30000); },
     packages: loadPackages, payments: loadPaymentsTable,
     security: loadSecurity, audit: loadAudit, reports: loadAnalytics, feedback: loadFeedback,
   };
@@ -492,6 +492,10 @@ async function loadSessions() {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No active sessions.</td></tr>';
     return;
   }
+  // Only re-render if data actually changed
+  const hash = JSON.stringify(data.map(s => s.session_id + s.expires_at));
+  if (tbody._lastHash === hash) return;
+  tbody._lastHash = hash;
   tbody.innerHTML = data.map(s => `
     <tr>
       <td class="mono">${s.mac_address}</td>

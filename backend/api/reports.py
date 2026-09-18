@@ -16,39 +16,41 @@ router = APIRouter()
 @router.get("/dashboard")
 async def dashboard_summary(admin=Depends(require_admin)):
     """Single endpoint that powers the entire admin dashboard."""
+    import asyncio
     db = get_db()
-    now = utcnow().isoformat()
-
-    # Active sessions count
-    active = db.table("sessions").select("id", count="exact").eq("status", "active").execute()
-
-    # Today's revenue
     today = utcnow().date().isoformat()
-    today_rev = db.table("payments").select("amount_kes").eq("status", "confirmed").gte("confirmed_at", today).execute()
-    today_total = sum(p["amount_kes"] for p in today_rev.data)
-
-    # Monthly revenue
     month_start = utcnow().replace(day=1).date().isoformat()
-    month_rev = db.table("payments").select("amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
+
+    def _active():
+        return db.table("sessions").select("id", count="exact").eq("status", "active").execute()
+    def _today_rev():
+        return db.table("payments").select("amount_kes").eq("status", "confirmed").gte("confirmed_at", today).execute()
+    def _month_rev():
+        return db.table("payments").select("amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
+    def _recent():
+        return db.table("payments").select(
+            "phone, amount_kes, status, mpesa_transaction_code, confirmed_at, packages(name)"
+        ).order("created_at", desc=True).limit(10).execute()
+    def _alerts():
+        return db.table("security_events").select("*").eq("is_resolved", False).order("created_at", desc=True).limit(5).execute()
+    def _notifs():
+        return db.table("notifications").select("*").eq("is_read", False).order("created_at", desc=True).limit(10).execute()
+    def _pkg():
+        return db.table("payments").select("packages(name)").eq("status", "confirmed").execute()
+
+    loop = asyncio.get_event_loop()
+    active, today_rev, month_rev, recent_payments, alerts, notifs, pkg_sales = await asyncio.gather(
+        loop.run_in_executor(None, _active),
+        loop.run_in_executor(None, _today_rev),
+        loop.run_in_executor(None, _month_rev),
+        loop.run_in_executor(None, _recent),
+        loop.run_in_executor(None, _alerts),
+        loop.run_in_executor(None, _notifs),
+        loop.run_in_executor(None, _pkg),
+    )
+
+    today_total = sum(p["amount_kes"] for p in today_rev.data)
     month_total = sum(p["amount_kes"] for p in month_rev.data)
-
-    # Recent payments (last 10)
-    recent_payments = db.table("payments").select(
-        "phone, amount_kes, status, mpesa_transaction_code, confirmed_at, packages(name)"
-    ).order("created_at", desc=True).limit(10).execute()
-
-    # Unread security alerts
-    alerts = db.table("security_events").select("*").eq("is_resolved", False).order(
-        "created_at", desc=True
-    ).limit(5).execute()
-
-    # Unread notifications
-    notifs = db.table("notifications").select("*").eq("is_read", False).order(
-        "created_at", desc=True
-    ).limit(10).execute()
-
-    # Package popularity
-    pkg_sales = db.table("payments").select("packages(name), amount_kes").eq("status", "confirmed").execute()
     pkg_count: dict = {}
     for p in pkg_sales.data:
         name = p["packages"]["name"] if p["packages"] else "Unknown"

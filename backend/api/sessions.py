@@ -16,8 +16,24 @@ router = APIRouter()
 @router.get("/active")
 async def active_sessions(admin=Depends(require_admin)):
     db = get_db()
-    result = db.table("active_sessions_view").select("*").execute()
-    return result.data
+    result = db.table("sessions").select(
+        "id, mac_address, ip_address, phone, status, expires_at, created_at, packages(name)"
+    ).eq("status", "active").order("created_at", desc=True).execute()
+    # Normalise field names to match what frontend expects
+    rows = []
+    for s in result.data:
+        rows.append({
+            "session_id": s["id"],
+            "mac_address": s["mac_address"],
+            "ip_address": s["ip_address"],
+            "phone": s["phone"],
+            "full_name": None,
+            "package_name": s["packages"]["name"] if s.get("packages") else "—",
+            "expires_at": s["expires_at"],
+            "status": s["status"],
+            "created_at": s["created_at"],
+        })
+    return rows
 
 
 @router.get("/")

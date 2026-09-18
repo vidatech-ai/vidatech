@@ -861,7 +861,7 @@ async function loadFeedback() {
   }
   el.innerHTML = data.map(f => {
     const date = new Date(f.created_at).toLocaleString();
-    const phone = f.phone ? f.phone.slice(0,5) + '****' + f.phone.slice(-2) : 'Anonymous';
+    const phone = f.phone || 'Anonymous';
     const reply = f.admin_reply
       ? `<div style="margin-top:10px;padding:10px 14px;background:rgba(16,185,129,0.08);border-left:3px solid #10b981;border-radius:0 8px 8px 0;font-size:13px;color:rgba(255,255,255,0.8)"><div style="font-size:11px;font-weight:700;color:#10b981;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">Your Reply</div>${f.admin_reply}</div>`
       : '';

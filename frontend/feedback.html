@@ -104,7 +104,7 @@ function submitFeedback() {
       document.getElementById("fbPhone").value = "";
       document.getElementById("fbTime").value = "";
       document.getElementById("fbMessage").value = "";
-      loadThread();
+      setTimeout(loadThread, 300);
     } else {
       status.textContent = d.error || "Something went wrong. Please try again.";
       status.className = "fb-status error";

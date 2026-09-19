@@ -96,15 +96,15 @@ initPortalPackages();
 async function loadPortalPackages() {
   try {
     // Show cached packages instantly if available
-    const cached = sessionStorage.getItem('vt_packages');
-    if (cached) {
-      renderPortalPackages(JSON.parse(cached));
-    }
+    try {
+      const cached = localStorage.getItem('vt_packages');
+      if (cached) renderPortalPackages(JSON.parse(cached));
+    } catch(e) {}
     const res = await fetch(`${API}/api/packages/?active_only=true`);
     if (!res.ok) return;
     const data = await res.json();
     if (!data.length) return;
-    sessionStorage.setItem('vt_packages', JSON.stringify(data));
+    try { localStorage.setItem('vt_packages', JSON.stringify(data)); } catch(e) {}
 
     renderPortalPackages(data);
   } catch(e) { /* keep static fallback */ }

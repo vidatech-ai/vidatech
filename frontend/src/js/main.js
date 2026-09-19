@@ -95,13 +95,25 @@ initPortalPackages();
 // Optionally load packages from API to overwrite static cards
 async function loadPortalPackages() {
   try {
+    // Show cached packages instantly if available
+    const cached = sessionStorage.getItem('vt_packages');
+    if (cached) {
+      renderPortalPackages(JSON.parse(cached));
+    }
     const res = await fetch(`${API}/api/packages/?active_only=true`);
     if (!res.ok) return;
     const data = await res.json();
     if (!data.length) return;
+    sessionStorage.setItem('vt_packages', JSON.stringify(data));
 
+    renderPortalPackages(data);
+  } catch(e) { /* keep static fallback */ }
+}
+
+function renderPortalPackages(data) {
     const icons = ['⚡','🌅','📆','🚀','🌟','💎'];
     const grid = document.getElementById('portalPackagesGrid');
+    if (!grid) return;
     grid.innerHTML = data.map((p, i) => {
       const dl = Math.round(p.download_kbps / 128);
       const ul = Math.round(p.upload_kbps / 128);
@@ -124,7 +136,6 @@ async function loadPortalPackages() {
         </div>`;
     }).join('');
     initPortalPackages();
-  } catch(e) { /* keep static fallback */ }
 }
 loadPortalPackages();
 

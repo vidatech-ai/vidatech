@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",                      # local dev
         "https://vidatech-wifi.pages.dev",
-        "https://vidatech-wifi.onrender.com",
+        "https://vidatech-wifi-z55g.onrender.com",
         "http://192.168.2.1",
     ]
 
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
 
     # The publicly accessible URL Paystack will POST payment events to
     # Must be HTTPS — set this in your Paystack dashboard under Settings → API
-    PAYSTACK_WEBHOOK_URL: str = "https://vidatech-wifi.onrender.com/payments/webhook"
+    PAYSTACK_WEBHOOK_URL: str = "https://vidatech-wifi-z55g.onrender.com/payments/webhook"
 
     # -------------------------------------------------------------------------
     # ROUTER — ZLT X17U

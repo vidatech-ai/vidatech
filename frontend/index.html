@@ -70,7 +70,7 @@
       (function(){
         var api = window.location.hostname === "192.168.2.1"
           ? "http://192.168.2.1/cgi-bin/proxy"
-          : "https://vidatech-wifi.onrender.com";
+          : "https://vidatech-wifi-z55g.onrender.com";
         fetch(api + "/api/reports/top-customer-public")
           .then(function(r){ return r.json(); })
           .then(function(d){
@@ -390,7 +390,7 @@
 <script>
 var _API = window.location.hostname === "192.168.2.1"
   ? "http://192.168.2.1/cgi-bin/proxy"
-  : "https://vidatech-wifi.onrender.com";
+  : "https://vidatech-wifi-z55g.onrender.com";
 
 function checkMyRank() {
   var phone = document.getElementById("rankPhone").value.trim();

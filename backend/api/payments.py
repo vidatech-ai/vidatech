@@ -139,7 +139,7 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
 async def paystack_webhook(request: Request):
     """
     Paystack posts to this endpoint after payment completes or fails.
-    URL: https://vidatech-wifi.onrender.com/payments/webhook
+    URL: https://vidatech-wifi-z55g.onrender.com/payments/webhook
     """
     db = get_db()
 

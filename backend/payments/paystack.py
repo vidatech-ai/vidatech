@@ -51,7 +51,7 @@ async def initiate_stk_push(
         "reference": account_ref,
         "metadata": {
             "description": description,
-            "cancel_action": "https://vidatech-wifi.onrender.com/payments/cancelled",
+            "cancel_action": "https://vidatech-wifi-z55g.onrender.com/payments/cancelled",
         },
     }
 

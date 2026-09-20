@@ -527,7 +527,8 @@ async function terminateSession(id) {
 // ─── USERS ──────────────────────────────────────────
 async function loadUsers() {
   // Users table is unused — derive subscribers from confirmed payments
-  const data = await api('/api/payments/?limit=500');
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const data = await api('/api/payments/?limit=500&confirmed_at=gte.' + monthStart + '&status=eq.confirmed');
   if (!data) return;
   const tbody = document.getElementById('usersTable');
   // Deduplicate by phone, track last payment and count

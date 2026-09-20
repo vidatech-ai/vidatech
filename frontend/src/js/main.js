@@ -395,6 +395,29 @@ async function api(path, opts) {
   return r.json();
 }
 
+// ─── NETWORK STATUS ─────────────────────────────────
+async function updateNetworkStatus() {
+  const data = await api('/api/devices/router-status');
+  const dot = document.getElementById('networkStatusDot');
+  const text = document.getElementById('networkStatusText');
+  if (!dot || !text) return;
+  if (!data || !data.updated_at) {
+    dot.style.background = '#ef4444';
+    text.textContent = 'Router Offline';
+    return;
+  }
+  const lastSeen = new Date(data.updated_at);
+  const diff = (Date.now() - lastSeen.getTime()) / 1000;
+  if (diff < 120) {
+    dot.style.background = '#10b981';
+    text.textContent = 'Network Online';
+  } else {
+    dot.style.background = '#ef4444';
+    text.textContent = 'Router Offline';
+  }
+}
+setInterval(updateNetworkStatus, 15000);
+
 // ─── DASHBOARD ──────────────────────────────────────
 async function loadDashboard() {
   if(window._dashRefresh) clearInterval(window._dashRefresh);

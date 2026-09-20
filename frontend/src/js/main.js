@@ -531,9 +531,11 @@ async function loadUsers() {
   if (!data) return;
   const tbody = document.getElementById('usersTable');
   // Deduplicate by phone, track last payment and count
+  const EXCLUDED = new Set(['254113259315','0113259315','254716954156','0716954156']);
   const map = {};
   (Array.isArray(data) ? data : (data.payments || [])).forEach(p => {
     if (!p.phone) return;
+    if (EXCLUDED.has(p.phone)) return;
     if (!map[p.phone]) map[p.phone] = { phone: p.phone, count: 0, last: null, total: 0 };
     map[p.phone].count++;
     map[p.phone].total += (p.amount_kes || 0);

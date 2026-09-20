@@ -416,6 +416,7 @@ async function updateNetworkStatus() {
     text.textContent = 'Router Offline';
   }
 }
+updateNetworkStatus();
 setInterval(updateNetworkStatus, 15000);
 
 // ─── DASHBOARD ──────────────────────────────────────

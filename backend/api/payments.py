@@ -277,9 +277,14 @@ async def paystack_webhook(request: Request):
 
 
 @router.get("/")
-async def list_payments(limit: int = 50, admin=Depends(require_admin)):
+async def list_payments(limit: int = 50, status: str = None, confirmed_at: str = None, admin=Depends(require_admin)):
     db = get_db()
-    result = db.table("payments").select("*, packages(name)").order("created_at", desc=True).limit(limit).execute()
+    query = db.table("payments").select("*, packages(name)").order("created_at", desc=True).limit(limit)
+    if status:
+        query = query.eq("status", status)
+    if confirmed_at:
+        query = query.gte("confirmed_at", confirmed_at)
+    result = query.execute()
     return result.data
 
 

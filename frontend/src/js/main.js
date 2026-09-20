@@ -400,10 +400,12 @@ async function updateNetworkStatus() {
   const data = await api('/api/devices/router-status');
   const dot = document.getElementById('networkStatusDot');
   const text = document.getElementById('networkStatusText');
+  const offlineInfo = document.getElementById('networkOfflineInfo');
   if (!dot || !text) return;
   if (!data || !data.updated_at) {
     dot.style.background = '#ef4444';
     text.textContent = 'Router Offline';
+    if (offlineInfo) offlineInfo.style.display = 'block';
     return;
   }
   const lastSeen = new Date(data.updated_at);
@@ -411,9 +413,18 @@ async function updateNetworkStatus() {
   if (diff < 120) {
     dot.style.background = '#10b981';
     text.textContent = 'Network Online';
+    if (offlineInfo) offlineInfo.style.display = 'none';
   } else {
     dot.style.background = '#ef4444';
     text.textContent = 'Router Offline';
+    if (offlineInfo) {
+      const mins = Math.floor(diff / 60);
+      const hrs = Math.floor(mins / 60);
+      const duration = hrs > 0 ? hrs + 'h ' + (mins % 60) + 'm' : mins + ' min';
+      const wentOff = lastSeen.toLocaleTimeString();
+      offlineInfo.style.display = 'block';
+      offlineInfo.innerHTML = '⚡ Power outage detected &nbsp;·&nbsp; Went offline at <strong>' + wentOff + '</strong> &nbsp;·&nbsp; Down for <strong>' + duration + '</strong>';
+    }
   }
 }
 updateNetworkStatus();

@@ -46,7 +46,7 @@ body {
 .hero-bg {
   position: absolute;
   inset: 0;
-  background-image: url('https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1600&q=80&auto=format&fit=crop');
+  background-image: url('/hero-bg.jpg');
   background-size: cover;
   background-position: center;
   filter: brightness(0.22) saturate(1.2);

@@ -35,7 +35,12 @@
 
   <!-- HERO -->
   <section class="hero" id="heroSection">
-    <div class="hero-bg"></div>
+    <div class="hero-bg" id="heroBg"></div>
+    <script>
+    if(window.location.hostname==="192.168.2.1"){
+      document.getElementById("heroBg").style.backgroundImage="url('/hero-bg.jpg')";
+    }
+    </script>
     <div class="hero-overlay"></div>
     <div class="hero-grid"></div>
 
@@ -145,7 +150,8 @@
     <p class="section-sub">From zero to online in under a minute.</p>
 
     <div class="how-image-wrap">
-      <img class="how-image" src="/cables.jpg" alt="Network fiber cables" />
+      <img class="how-image" id="cablesImg" src="https://vidatech-wifi.pages.dev/src/assets/images/network-cables.jpg" alt="Network fiber cables" />
+    <script>if(window.location.hostname==="192.168.2.1"){document.getElementById("cablesImg").src="/cables.jpg";}</script>
     </div>
 
     <div class="how-steps">

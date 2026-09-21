@@ -6,7 +6,16 @@
 <title>Vidatech WiFi — Fast Internet, Wherever You Are</title>
 <link rel="icon" type="image/svg+xml" href="/src/assets/favicon.svg" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="https://vidatech-wifi.pages.dev/src/css/main.css" />
+<script>
+(function(){
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = window.location.hostname === '192.168.2.1'
+    ? '/main.css'
+    : 'https://vidatech-wifi.pages.dev/src/css/main.css';
+  document.head.appendChild(l);
+})();
+</script>
 <script>
 (function() {
   var xhr = new XMLHttpRequest();
@@ -374,7 +383,15 @@
 
 
 
-<script src="https://vidatech-wifi.pages.dev/src/js/main.js?v=3"></script>
+<script>
+(function(){
+  var s = document.createElement('script');
+  s.src = window.location.hostname === '192.168.2.1'
+    ? '/main.js'
+    : 'https://vidatech-wifi.pages.dev/src/js/main.js?v=3';
+  document.body.appendChild(s);
+})();
+</script>
 <!-- RANK MODAL -->
 <div id="rankModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
   <div style="background:#111118;border:1.5px solid rgba(16,185,129,0.4);border-radius:20px;padding:28px 24px;max-width:380px;width:100%;position:relative">

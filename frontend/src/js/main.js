@@ -410,7 +410,7 @@ async function updateNetworkStatus() {
   }
   const lastSeen = new Date(data.updated_at);
   const diff = (Date.now() - lastSeen.getTime()) / 1000;
-  if (diff < 120) {
+  if (diff < 600) {
     dot.style.background = '#10b981';
     text.textContent = 'Network Online';
     if (offlineInfo) offlineInfo.style.display = 'none';

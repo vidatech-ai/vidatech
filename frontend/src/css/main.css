@@ -264,13 +264,14 @@ body {
 
 .pkg-big {
   background: var(--surface);
-  border: 1.5px solid var(--border);
+  border: none;
   border-radius: 16px;
   padding: 32px 24px;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 0;
 }
 
 @keyframes rotateBorder {

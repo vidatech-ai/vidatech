@@ -264,7 +264,7 @@ body {
 
 .pkg-big {
   background: var(--surface);
-  border: none;
+  border: 2px solid #0ea5e9;
   border-radius: 16px;
   padding: 32px 24px;
   cursor: pointer;
@@ -272,6 +272,15 @@ body {
   position: relative;
   overflow: visible;
   z-index: 0;
+  animation: cardBorderColor 4s linear infinite;
+}
+
+@keyframes cardBorderColor {
+  0%   { border-color: #0ea5e9; box-shadow: 0 0 8px rgba(14,165,233,0.5); }
+  25%  { border-color: #8b5cf6; box-shadow: 0 0 8px rgba(139,92,246,0.5); }
+  50%  { border-color: #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
+  75%  { border-color: #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,0.5); }
+  100% { border-color: #0ea5e9; box-shadow: 0 0 8px rgba(14,165,233,0.5); }
 }
 
 @keyframes rotateBorder {
@@ -279,31 +288,9 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* Thin rotating light line — all cards */
-.pkg-big::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 18px;
-  background: conic-gradient(
-    from 0deg,
-    transparent 70%,
-    #0ea5e9, #8b5cf6, #10b981, #f59e0b, #ef4444,
-    transparent 100%
-  );
-  z-index: -1;
-  animation: rotateBorder 2s linear infinite;
-}
-
-/* Inner cover to create line effect */
-.pkg-big::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  border-radius: 15px;
-  background: var(--surface);
-  z-index: -1;
-}
+/* Remove pseudo elements */
+.pkg-big::before { display: none; }
+.pkg-big::after { display: none; }
 
 .pkg-big:hover {
   transform: translateY(-2px);

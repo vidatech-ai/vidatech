@@ -519,7 +519,22 @@ function checkMyRank() {
   }, 500);
   setTimeout(function(){
     document.getElementById('welcomeMsg').style.opacity = '0';
-  }, 6000);
+  }, 7000);
+
+  // Flares
+  var flares = document.getElementById('flares');
+  var colors = ['#0ea5e9','#8b5cf6','#10b981','#f59e0b','#ef4444','#fff'];
+  function spawnFlare(){
+    var f = document.createElement('div');
+    var size = Math.random()*6+3;
+    var color = colors[Math.floor(Math.random()*colors.length)];
+    f.style.cssText = 'position:absolute;width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+color+';left:'+Math.random()*100+'%;top:'+Math.random()*100+'%;opacity:1;transition:all 1s;box-shadow:0 0 '+size*2+'px '+color;
+    flares.appendChild(f);
+    setTimeout(function(){ f.style.opacity='0'; f.style.transform='translateY(-20px) scale(0)'; },50);
+    setTimeout(function(){ f.remove(); },1100);
+  }
+  var flareInterval = setInterval(spawnFlare, 150);
+  setTimeout(function(){ clearInterval(flareInterval); }, 7000);
 })();
 </script>
 </body>

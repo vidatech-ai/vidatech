@@ -465,24 +465,28 @@ function checkMyRank() {
   <!-- Welcome message -->
   <div id="welcomeMsg" style="
     position:fixed;
-    bottom:24px;
+    top:50%;
     left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,0.85);
-    backdrop-filter:blur(12px);
-    border:1px solid rgba(255,255,255,0.15);
-    border-radius:14px;
-    padding:12px 20px;
+    transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.88);
+    backdrop-filter:blur(16px);
+    border:1.5px solid rgba(16,185,129,0.4);
+    border-radius:18px;
+    padding:20px 28px;
     text-align:center;
     font-family:Inter,sans-serif;
-    font-size:13px;
+    font-size:15px;
     color:#fff;
-    white-space:nowrap;
+    line-height:1.7;
     opacity:0;
     transition:opacity 1s;
     z-index:9999;
+    max-width:90vw;
+    box-shadow:0 0 40px rgba(16,185,129,0.2);
   ">
-    🙏 Thanks for connecting to <strong style="color:#10b981">Vidatech WiFi</strong> &nbsp;·&nbsp; Issues? Call <strong style="color:#fbbf24">0113 259 315</strong>
+    🙏 <strong style="color:#10b981">Welcome to Vidatech WiFi!</strong><br>
+    <span style="font-size:13px;color:rgba(255,255,255,0.7)">Thanks for connecting. Having issues?</span><br>
+    <span style="color:#fbbf24;font-weight:700;font-size:16px">📞 0113 259 315</span>
   </div>
 </div>
 

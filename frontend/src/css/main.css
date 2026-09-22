@@ -288,9 +288,8 @@ body {
     #0ea5e9, #8b5cf6, #10b981, #f59e0b, #ef4444, #0ea5e9
   );
   z-index: -1;
-  opacity: 0;
+  opacity: 1;
   animation: rotateBorder 3s linear infinite;
-  transition: opacity 0.3s;
 }
 
 .pkg-big::after {
@@ -302,30 +301,27 @@ body {
   z-index: -1;
 }
 
-.pkg-big:hover::before { opacity: 1; }
-
 .pkg-big:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(14,165,233,0.15);
+  box-shadow: 0 20px 40px rgba(14,165,233,0.2);
 }
 
 .pkg-big.selected::before {
-  opacity: 1;
   background: conic-gradient(
     from 0deg,
     #f59e0b, #ef4444, #8b5cf6, #10b981, #0ea5e9, #f59e0b
   );
-  animation: rotateBorder 1.5s linear infinite;
+  animation: rotateBorder 0.8s linear infinite;
 }
 
 .pkg-big.selected {
   transform: translateY(-6px);
-  box-shadow: 0 0 40px rgba(245,158,11,0.3), 0 20px 40px rgba(14,165,233,0.2);
+  box-shadow: 0 0 50px rgba(245,158,11,0.5), 0 20px 40px rgba(14,165,233,0.3);
   border-color: transparent;
 }
 
 .pkg-big.selected::after {
-  background: rgba(14,165,233,0.08);
+  background: rgba(245,158,11,0.06);
 }
 
 .pkg-big.popular {

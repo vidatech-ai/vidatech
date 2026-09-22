@@ -279,27 +279,27 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-/* Outer rotating light line — all cards */
+/* Thin rotating light line — all cards */
 .pkg-big::before {
   content: '';
   position: absolute;
-  inset: -1.5px;
+  inset: -1px;
   border-radius: 18px;
   background: conic-gradient(
     from 0deg,
-    transparent 0deg, transparent 300deg,
-    #0ea5e9 300deg, #8b5cf6 320deg, #10b981 340deg, #f59e0b 355deg, transparent 360deg
+    transparent 70%,
+    #0ea5e9, #8b5cf6, #10b981, #f59e0b, #ef4444,
+    transparent 100%
   );
   z-index: -1;
-  opacity: 1;
   animation: rotateBorder 2s linear infinite;
 }
 
-/* Inner cover — all cards */
+/* Inner cover to create line effect */
 .pkg-big::after {
   content: '';
   position: absolute;
-  inset: 1.5px;
+  inset: 2px;
   border-radius: 15px;
   background: var(--surface);
   z-index: -1;

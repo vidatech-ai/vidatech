@@ -18,8 +18,11 @@ async def dashboard_summary(admin=Depends(require_admin)):
     """Single endpoint that powers the entire admin dashboard."""
     import asyncio
     db = get_db()
-    today = utcnow().date().isoformat()
-    month_start = utcnow().replace(day=1).date().isoformat()
+    import datetime
+    EAT = datetime.timezone(datetime.timedelta(hours=3))
+    now_eat = datetime.datetime.now(EAT)
+    today = now_eat.date().isoformat()
+    month_start = now_eat.replace(day=1).date().isoformat()
 
     def _active():
         return db.table("sessions").select("id", count="exact").eq("status", "active").execute()

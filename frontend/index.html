@@ -449,5 +449,67 @@ function checkMyRank() {
     });
 }
 </script>
+<!-- WELCOME BORDER ANIMATION -->
+<div id="welcomeBorder" style="
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:9998;
+  border-radius:0;
+">
+  <!-- Border lines -->
+  <div id="welcomeTop" style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0ea5e9,#8b5cf6,#10b981,#f59e0b,#ef4444);background-size:300% 100%;animation:borderFlow 3s linear infinite;opacity:0;transition:opacity 1s"></div>
+  <div id="welcomeBottom" style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981,#8b5cf6,#0ea5e9);background-size:300% 100%;animation:borderFlow 3s linear infinite reverse;opacity:0;transition:opacity 1s"></div>
+  <div id="welcomeLeft" style="position:absolute;top:0;bottom:0;left:0;width:3px;background:linear-gradient(180deg,#0ea5e9,#8b5cf6,#10b981,#f59e0b,#ef4444);background-size:100% 300%;animation:borderFlowV 3s linear infinite;opacity:0;transition:opacity 1s"></div>
+  <div id="welcomeRight" style="position:absolute;top:0;bottom:0;right:0;width:3px;background:linear-gradient(180deg,#ef4444,#f59e0b,#10b981,#8b5cf6,#0ea5e9);background-size:100% 300%;animation:borderFlowV 3s linear infinite reverse;opacity:0;transition:opacity 1s"></div>
+  <!-- Welcome message -->
+  <div id="welcomeMsg" style="
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,0.85);
+    backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:14px;
+    padding:12px 20px;
+    text-align:center;
+    font-family:Inter,sans-serif;
+    font-size:13px;
+    color:#fff;
+    white-space:nowrap;
+    opacity:0;
+    transition:opacity 1s;
+    z-index:9999;
+  ">
+    🙏 Thanks for connecting to <strong style="color:#10b981">Vidatech WiFi</strong> &nbsp;·&nbsp; Issues? Call <strong style="color:#fbbf24">0113 259 315</strong>
+  </div>
+</div>
+
+<style>
+@keyframes borderFlow {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 300% 0%; }
+}
+@keyframes borderFlowV {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 0% 300%; }
+}
+</style>
+
+<script>
+(function(){
+  setTimeout(function(){
+    document.getElementById('welcomeTop').style.opacity = '1';
+    document.getElementById('welcomeBottom').style.opacity = '1';
+    document.getElementById('welcomeLeft').style.opacity = '1';
+    document.getElementById('welcomeRight').style.opacity = '1';
+    document.getElementById('welcomeMsg').style.opacity = '1';
+  }, 500);
+  setTimeout(function(){
+    document.getElementById('welcomeMsg').style.opacity = '0';
+  }, 6000);
+})();
+</script>
 </body>
 </html>

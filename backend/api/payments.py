@@ -154,6 +154,19 @@ async def paystack_webhook(request: Request):
     event = body.get("event")
     data  = body.get("data", {})
 
+    # Settlement events — Paystack sending money to your till
+    if event == "transfer.success":
+        _handle_settlement(db, data, status="settled")
+        return {"status": "ok"}
+
+    if event == "transfer.failed":
+        _handle_settlement(db, data, status="failed")
+        return {"status": "ok"}
+
+    if event == "transfer.reversed":
+        _handle_settlement(db, data, status="reversed")
+        return {"status": "ok"}
+
     # Only handle charge events
     if event not in ("charge.success", "charge.failed"):
         return {"status": "ignored"}
@@ -310,4 +323,58 @@ async def payment_status(payment_id: str):
     result = db.table("payments").select("id, status, mpesa_transaction_code, confirmed_at").eq("id", payment_id).single().execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Payment not found.")
+    return result.data
+
+# ---------------------------------------------------------------------------
+# Internal helper — saves Paystack settlement to DB
+# ---------------------------------------------------------------------------
+
+def _handle_settlement(db, data: dict, status: str):
+    """
+    Saves a Paystack transfer/settlement event to the settlements table.
+    Called for transfer.success, transfer.failed, transfer.reversed.
+    """
+    settlement_id = data.get("id")
+    if not settlement_id:
+        logger.error("Settlement webhook missing id field.")
+        return
+
+    amount_kes = int(data.get("amount", 0)) / 100
+
+    settled_at = (
+        data.get("transfer_date")
+        or data.get("updated_at")
+        or data.get("created_at")
+        or utcnow().isoformat()
+    )
+
+    try:
+        db.table("settlements").upsert({
+            "paystack_settlement_id": settlement_id,
+            "amount_kes": amount_kes,
+            "status": status,
+            "settled_at": settled_at,
+            "integration": str(data.get("integration", "")),
+            "subaccount": str(data.get("recipient", {}).get("name", "")) if isinstance(data.get("recipient"), dict) else "",
+        }, on_conflict="paystack_settlement_id").execute()
+
+        logger.info(f"Settlement recorded: id={settlement_id} amount=KES {amount_kes} status={status}")
+
+        emoji = "✅" if status == "settled" else "❌"
+        db.table("notifications").insert({
+            "title": f"{emoji} Settlement {status.capitalize()}",
+            "body": f"Paystack sent KES {amount_kes:,.2f} to your till. Ref: {settlement_id}",
+            "type": "settlement",
+            "metadata": {"settlement_id": settlement_id, "amount_kes": amount_kes, "status": status},
+        }).execute()
+
+    except Exception as e:
+        logger.error(f"Failed to save settlement {settlement_id}: {e}")
+
+
+@router.get("/settlements")
+async def list_settlements(limit: int = 100, admin=Depends(require_admin)):
+    """Returns all settlements Paystack has sent to your till."""
+    db = get_db()
+    result = db.table("settlements").select("*").order("settled_at", desc=True).limit(limit).execute()
     return result.data

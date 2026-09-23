@@ -391,8 +391,6 @@ async def list_settlements(limit: int = 100, admin=Depends(require_admin)):
 
     # Totals
     def calc_fee(amount):
-        if amount < 100:
-            return 0
         fee = (amount * 0.015) + 1.0
         return min(fee, 60.0) if amount > 4000 else fee
 

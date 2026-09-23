@@ -374,28 +374,54 @@ def _handle_settlement(db, data: dict, status: str):
 
 @router.get("/settlements")
 async def list_settlements(limit: int = 100, admin=Depends(require_admin)):
-    """Returns settlements + summary (total paid in, total settled, pending, fees)."""
+    """Returns settlements + all-time and monthly summary."""
     import datetime
     db = get_db()
     EAT = datetime.timezone(datetime.timedelta(hours=3))
+    now_eat = datetime.datetime.now(EAT)
+    month_start = now_eat.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     settlements = db.table("settlements").select("*").order("settled_at", desc=True).limit(limit).execute()
-    payments = db.table("payments").select("amount_kes").eq("status", "confirmed").execute()
 
-    total_received = sum(p.get("amount_kes") or 0 for p in payments.data)
-    total_fees = round(total_received * 0.015, 2)  # estimate: ~1.5% Paystack fee
+    # All-time confirmed payments
+    all_payments = db.table("payments").select("amount_kes, confirmed_at").eq("status", "confirmed").execute()
+
+    # This month only
+    month_payments = db.table("payments").select("amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
+
+    # Totals
+    total_received_alltime = sum(p.get("amount_kes") or 0 for p in all_payments.data)
+    total_fees_alltime = round(total_received_alltime * 0.015, 2)
     total_settled = sum(s.get("amount_kes") or 0 for s in settlements.data)
-    pending = total_received - total_fees - total_settled
+    pending = max(total_received_alltime - total_fees_alltime - total_settled, 0)
 
-    now_eat = datetime.datetime.now(EAT).strftime("%d %b %Y, %I:%M %p")
+    month_received = sum(p.get("amount_kes") or 0 for p in month_payments.data)
+    month_fees = round(month_received * 0.015, 2)
+
+    # Settled this month
+    month_settlements = db.table("settlements").select("amount_kes").gte("settled_at", month_start).execute()
+    month_settled = sum(s.get("amount_kes") or 0 for s in month_settlements.data)
+    month_pending = max(month_received - month_fees - month_settled, 0)
+
+    as_of = now_eat.strftime("%d %b %Y, %I:%M %p")
+    month_label = now_eat.strftime("%B %Y")
 
     return {
         "summary": {
-            "total_received_kes": round(total_received, 2),
-            "total_fees_kes": round(total_fees, 2),
-            "total_settled_kes": round(total_settled, 2),
-            "pending_kes": round(max(pending, 0), 2),
-            "as_of": now_eat,
+            "alltime": {
+                "total_received_kes": round(total_received_alltime, 2),
+                "total_fees_kes": total_fees_alltime,
+                "total_settled_kes": round(total_settled, 2),
+                "pending_kes": round(pending, 2),
+            },
+            "this_month": {
+                "label": month_label,
+                "total_received_kes": round(month_received, 2),
+                "total_fees_kes": month_fees,
+                "total_settled_kes": round(month_settled, 2),
+                "pending_kes": round(month_pending, 2),
+            },
+            "as_of": as_of,
         },
         "settlements": settlements.data,
     }

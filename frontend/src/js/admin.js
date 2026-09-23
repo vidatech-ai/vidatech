@@ -93,7 +93,7 @@ document.getElementById('packageModal').addEventListener('click', function(e) {
   if (e.target === this) closePackageModal();
 });
 
-let checkTimerInterval = null;
+
 
 
 

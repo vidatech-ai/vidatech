@@ -380,10 +380,10 @@ async def list_settlements(limit: int = 100, admin=Depends(require_admin)):
     EAT = datetime.timezone(datetime.timedelta(hours=3))
 
     settlements = db.table("settlements").select("*").order("settled_at", desc=True).limit(limit).execute()
-    payments = db.table("payments").select("amount_kes, paystack_fee_kes").eq("status", "confirmed").execute()
+    payments = db.table("payments").select("amount_kes").eq("status", "confirmed").execute()
 
     total_received = sum(p.get("amount_kes") or 0 for p in payments.data)
-    total_fees = sum(p.get("paystack_fee_kes") or 0 for p in payments.data)
+    total_fees = round(total_received * 0.015, 2)  # estimate: ~1.5% Paystack fee
     total_settled = sum(s.get("amount_kes") or 0 for s in settlements.data)
     pending = total_received - total_fees - total_settled
 

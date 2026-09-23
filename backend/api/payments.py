@@ -374,7 +374,28 @@ def _handle_settlement(db, data: dict, status: str):
 
 @router.get("/settlements")
 async def list_settlements(limit: int = 100, admin=Depends(require_admin)):
-    """Returns all settlements Paystack has sent to your till."""
+    """Returns settlements + summary (total paid in, total settled, pending, fees)."""
+    import datetime
     db = get_db()
-    result = db.table("settlements").select("*").order("settled_at", desc=True).limit(limit).execute()
-    return result.data
+    EAT = datetime.timezone(datetime.timedelta(hours=3))
+
+    settlements = db.table("settlements").select("*").order("settled_at", desc=True).limit(limit).execute()
+    payments = db.table("payments").select("amount_kes, paystack_fee_kes").eq("status", "confirmed").execute()
+
+    total_received = sum(p.get("amount_kes") or 0 for p in payments.data)
+    total_fees = sum(p.get("paystack_fee_kes") or 0 for p in payments.data)
+    total_settled = sum(s.get("amount_kes") or 0 for s in settlements.data)
+    pending = total_received - total_fees - total_settled
+
+    now_eat = datetime.datetime.now(EAT).strftime("%d %b %Y, %I:%M %p")
+
+    return {
+        "summary": {
+            "total_received_kes": round(total_received, 2),
+            "total_fees_kes": round(total_fees, 2),
+            "total_settled_kes": round(total_settled, 2),
+            "pending_kes": round(max(pending, 0), 2),
+            "as_of": now_eat,
+        },
+        "settlements": settlements.data,
+    }

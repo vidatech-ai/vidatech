@@ -390,13 +390,19 @@ async def list_settlements(limit: int = 100, admin=Depends(require_admin)):
     month_payments = db.table("payments").select("amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
 
     # Totals
+    def calc_fee(amount):
+        if amount < 100:
+            return 0
+        fee = (amount * 0.015) + 1.0
+        return min(fee, 60.0) if amount > 4000 else fee
+
     total_received_alltime = sum(p.get("amount_kes") or 0 for p in all_payments.data)
-    total_fees_alltime = round(total_received_alltime * 0.015, 2)
+    total_fees_alltime = round(sum(calc_fee(p.get("amount_kes") or 0) for p in all_payments.data), 2)
     total_settled = sum(s.get("amount_kes") or 0 for s in settlements.data)
     pending = max(total_received_alltime - total_fees_alltime - total_settled, 0)
 
     month_received = sum(p.get("amount_kes") or 0 for p in month_payments.data)
-    month_fees = round(month_received * 0.015, 2)
+    month_fees = round(sum(calc_fee(p.get("amount_kes") or 0) for p in month_payments.data), 2)
 
     # Settled this month
     month_settlements = db.table("settlements").select("amount_kes").gte("settled_at", month_start).execute()

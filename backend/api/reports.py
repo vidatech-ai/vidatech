@@ -151,6 +151,53 @@ async def analytics(admin=Depends(require_admin)):
     }
 
 
+@router.post("/settlements/sync")
+async def sync_settlements(admin=Depends(require_admin)):
+    """
+    Pulls settlement history directly from Paystack and upserts it into
+    the settlements table in Supabase. Acts as a reconciliation/fallback
+    on top of the real-time transfer.success webhook, so the table stays
+    accurate even if a webhook event is ever missed.
+    """
+    import httpx
+    from config import get_settings
+    settings = get_settings()
+    db = get_db()
+    try:
+        r = httpx.get(
+            "https://api.paystack.co/settlement?perPage=50",
+            headers={"Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}"},
+            timeout=15
+        )
+        data = r.json()
+        if not data.get("status"):
+            return {"synced": 0, "error": data.get("message", "Paystack request failed")}
+
+        records = []
+        for s in data.get("data", []):
+            settlement_id = s.get("id")
+            if not settlement_id:
+                continue
+            records.append({
+                "paystack_settlement_id": settlement_id,
+                "amount_kes": (s.get("total_amount", 0) or 0) / 100,
+                "status": s.get("status", ""),
+                "settled_at": s.get("settlement_date") or s.get("updated_at") or s.get("created_at"),
+                "integration": str(s.get("integration", "")),
+                "subaccount": "",
+            })
+
+        if records:
+            db.table("settlements").upsert(
+                records, on_conflict="paystack_settlement_id"
+            ).execute()
+
+        return {"synced": len(records)}
+    except Exception as e:
+        logger.error(f"Settlement sync failed: {e}")
+        return {"synced": 0, "error": str(e)}
+
+
 @router.get("/my-rank")
 async def my_rank(phone: str):
     """Public — returns a customer's rank, sessions and spend for current month."""

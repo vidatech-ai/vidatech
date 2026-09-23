@@ -372,13 +372,13 @@ function showPage(name, el) {
   if (el) el.classList.add('active');
   const titles = {
     dashboard:'Dashboard', sessions:'Live Sessions', users:'Subscribers',
-    devices:'All Devices', packages:'Packages', payments:'Payments',
+    devices:'All Devices', packages:'Packages', payments:'Payments', settlements:'Settlements',
     reports:'Analytics', security:'Security Events', audit:'Audit Log', feedback:'Feedback', settings:'Settings',
   };
   document.getElementById('pageTitle').textContent = titles[name] || name;
   const loaders = {
     sessions: () => { loadSessions(); if(window._sessRefresh) clearInterval(window._sessRefresh); window._sessRefresh = setInterval(loadSessions, 10000); }, users: loadUsers, devices: () => { loadDevices(); if(window._devRefresh) clearInterval(window._devRefresh); window._devRefresh = setInterval(loadDevices, 30000); },
-    packages: loadPackages, payments: loadPaymentsTable,
+    packages: loadPackages, payments: loadPaymentsTable, settlements: () => { loadSettlementsTable(); if(window._setRefresh) clearInterval(window._setRefresh); window._setRefresh = setInterval(loadSettlementsTable, 10000); },
     security: loadSecurity, audit: loadAudit, reports: loadAnalytics, feedback: loadFeedback,
   };
   if (loaders[name]) loaders[name]();

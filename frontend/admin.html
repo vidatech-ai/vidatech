@@ -78,6 +78,9 @@
       <button class="nav-item" onclick="showPage('payments', this)">
         <span class="icon">💳</span> Payments
       </button>
+      <button class="nav-item" onclick="showPage('settlements', this)">
+        <span class="icon">🏦</span> Settlements
+      </button>
 
       <div class="nav-section-label">Intelligence</div>
       <button class="nav-item" onclick="showPage('reports', this)">
@@ -326,6 +329,40 @@
           </tr></thead>
           <tbody id="paymentsTable">
             <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTLEMENTS -->
+    <div class="page" id="page-settlements">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Paystack Settlements</div></div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>Amount</th><th>Status</th><th>Settled At</th><th>Reference</th>
+          </tr></thead>
+          <tbody id="settlementsTable">
+            <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTLEMENTS -->
+    <div class="page" id="page-settlements">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Paystack Settlements</div></div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>Amount</th><th>Status</th><th>Settled At</th><th>Reference</th>
+          </tr></thead>
+          <tbody id="settlementsTable">
+            <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
           </tbody>
         </table>
         </div>

@@ -56,7 +56,7 @@ async def dashboard_summary(admin=Depends(require_admin)):
     month_total = sum(p["amount_kes"] for p in month_rev.data)
     pkg_count: dict = {}
     for p in pkg_sales.data:
-        name = p["packages"]["name"] if p["packages"] else "Unknown"
+        name = (p.get("packages") or {}).get("name") or "Unknown"
         pkg_count[name] = pkg_count.get(name, 0) + 1
     popular = sorted(pkg_count.items(), key=lambda x: x[1], reverse=True)
 
@@ -137,7 +137,7 @@ async def analytics(admin=Depends(require_admin)):
     pkg_sales = db.table("payments").select("packages(name), amount_kes").eq("status", "confirmed").execute()
     pkg_count = {}
     for p in pkg_sales.data:
-        name = p["packages"]["name"] if p["packages"] else "Unknown"
+        name = (p.get("packages") or {}).get("name") or "Unknown"
         pkg_count[name] = pkg_count.get(name, 0) + 1
     return {
         "total_devices": total_devices.count,

@@ -114,25 +114,30 @@ async def analytics(admin=Depends(require_admin)):
         customer_count[ph] = customer_count.get(ph, 0) + 1
         customer_spend[ph] = customer_spend.get(ph, 0) + p["amount_kes"]
     top_customer = max(customer_spend, key=customer_spend.get) if customer_spend else None
+    def _to_eat(ts):
+        dt = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt.astimezone(datetime.timezone(datetime.timedelta(hours=3)))
     # Peak hour
     confirmed = db.table("payments").select("confirmed_at").eq("status", "confirmed").execute()
     hour_count = {}
     for p in confirmed.data:
         if p["confirmed_at"]:
-            h = int(p["confirmed_at"][11:13])
+            h = _to_eat(p["confirmed_at"]).hour
             hour_count[h] = hour_count.get(h, 0) + 1
     peak_hour = max(hour_count, key=hour_count.get) if hour_count else None
     # Daily revenue last 30 days
     import datetime
     days = []
     for i in range(29, -1, -1):
-        d = (datetime.datetime.utcnow() - datetime.timedelta(days=i)).date().isoformat()
+        d = (datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3))) - datetime.timedelta(days=i)).date().isoformat()
         days.append(d)
-    daily = db.table("payments").select("amount_kes, confirmed_at").eq("status", "confirmed").gte("confirmed_at", days[0]).execute()
+    daily = db.table("payments").select("amount_kes, confirmed_at").eq("status", "confirmed").gte("confirmed_at", days[0] + "T00:00:00+03:00").execute()
     daily_map = {d: 0 for d in days}
     for p in daily.data:
         if p["confirmed_at"]:
-            d = p["confirmed_at"][:10]
+            d = _to_eat(p["confirmed_at"]).date().isoformat()
             if d in daily_map:
                 daily_map[d] += p["amount_kes"]
     # Package popularity

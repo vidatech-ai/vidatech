@@ -391,7 +391,8 @@ async def list_settlements(limit: int = 100, admin=Depends(require_admin)):
 
     # Totals
     def calc_fee(amount):
-        return round(amount * 0.015, 2)
+        from decimal import Decimal, ROUND_HALF_UP
+        return float((Decimal(str(amount)) * Decimal("0.015")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
     total_received_alltime = sum(p.get("amount_kes") or 0 for p in all_payments.data)
     total_fees_alltime = round(sum(calc_fee(p.get("amount_kes") or 0) for p in all_payments.data), 2)

@@ -22,7 +22,7 @@ async def dashboard_summary(admin=Depends(require_admin)):
     EAT = datetime.timezone(datetime.timedelta(hours=3))
     now_eat = datetime.datetime.now(EAT)
     today = now_eat.date().isoformat()
-    month_start = now_eat.replace(day=1).date().isoformat()
+    month_start = now_eat.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     def _active():
         return db.table("sessions").select("id", count="exact").eq("status", "active").execute()

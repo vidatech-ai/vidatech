@@ -405,7 +405,7 @@ async def list_settlements(limit: int = 100, admin=Depends(require_admin)):
     # Settled this month
     month_settlements = db.table("settlements").select("amount_kes").gte("settled_at", month_start).execute()
     month_settled = sum(s.get("amount_kes") or 0 for s in month_settlements.data)
-    month_pending = max(month_received - month_fees - month_settled, 0)
+    month_pending = pending
 
     as_of = now_eat.strftime("%d %b %Y, %I:%M %p")
     month_label = now_eat.strftime("%B %Y")

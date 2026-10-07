@@ -103,7 +103,7 @@ async def analytics(admin=Depends(require_admin)):
     # Top customer by total spend (excluding admin numbers)
     EXCLUDED = {"254113259315", "0113259315", "254716954156", "0716954156"}
     import datetime
-    month_start = datetime.datetime.utcnow().replace(day=1).date().isoformat()
+    month_start = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3))).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     payments_all = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
     customer_count = {}
     customer_spend = {}
@@ -207,7 +207,7 @@ async def my_rank(phone: str):
     db = get_db()
     import datetime
     EXCLUDED = {"254113259315", "0113259315", "254716954156", "0716954156"}
-    month_start = datetime.datetime.utcnow().replace(day=1).date().isoformat()
+    month_start = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3))).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     payments = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
     customer_spend = {}
     customer_count = {}
@@ -246,7 +246,7 @@ async def top_customer_public():
     db = get_db()
     import datetime
     EXCLUDED = {"254113259315", "0113259315", "254716954156", "0716954156"}
-    month_start = datetime.datetime.utcnow().replace(day=1).date().isoformat()
+    month_start = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3))).replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     payments = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
     customer_count = {}
     customer_spend = {}

@@ -102,7 +102,9 @@ async def analytics(admin=Depends(require_admin)):
     total_devices = db.table("devices").select("id", count="exact").execute()
     # Top customer by total spend (excluding admin numbers)
     EXCLUDED = {"254113259315", "0113259315", "254716954156", "0716954156"}
-    payments_all = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").execute()
+    import datetime
+    month_start = datetime.datetime.utcnow().replace(day=1).date().isoformat()
+    payments_all = db.table("payments").select("phone, amount_kes").eq("status", "confirmed").gte("confirmed_at", month_start).execute()
     customer_count = {}
     customer_spend = {}
     for p in payments_all.data:

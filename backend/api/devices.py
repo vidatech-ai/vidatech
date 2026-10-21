@@ -4,7 +4,8 @@
 # =============================================================================
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends, Request
+import threading
+from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 from auth.dependencies import require_admin
 from db import get_db
 from utils import utcnow
@@ -41,42 +42,62 @@ async def device_heartbeat(request: Request):
 
 _router_status_cache = {"clients": [], "status": {}, "updated_at": None}
 
+_status_lock = threading.Lock()
+
+
+def _sync_devices_from_status(clients, public_ip):
+    # Runs in a worker thread after the response is sent.
+    # Skips if the previous run is still going, so runs cannot pile up.
+    if not _status_lock.acquire(blocking=False):
+        return
+    try:
+        entries = {}
+        for client in clients or []:
+            mac = (client.get("mac") or "").lower().strip()
+            if mac:
+                entries[mac] = client
+        if not entries:
+            return
+        db = get_db()
+        found = db.table("devices").select("mac_address").in_("mac_address", list(entries.keys())).execute()
+        existing = {(r.get("mac_address") or "").lower() for r in (found.data or [])}
+        new_rows = []
+        for mac, client in entries.items():
+            ip = client.get("ip") or ""
+            if mac in existing:
+                update_data = {
+                    "ip_address": ip,
+                    "last_seen_at": utcnow().isoformat(),
+                    "hostname": client.get("hostname") or None,
+                }
+                if public_ip:
+                    update_data["session_token"] = public_ip
+                db.table("devices").update(update_data).eq("mac_address", mac).execute()
+            else:
+                new_rows.append({
+                    "mac_address": mac,
+                    "ip_address": ip,
+                    "status": "unknown",
+                    "last_seen_at": utcnow().isoformat(),
+                    "session_token": public_ip if public_ip else None,
+                })
+        if new_rows:
+            db.table("devices").insert(new_rows).execute()
+    except Exception:
+        logger.exception("router-status device sync failed")
+    finally:
+        _status_lock.release()
+
+
 @router.post("/router-status")
-async def push_router_status(request: Request):
+async def push_router_status(request: Request, background_tasks: BackgroundTasks):
     """Called by router agent every 5 seconds to push connected clients and status."""
     global _router_status_cache
     body = await request.json()
     body["updated_at"] = utcnow().isoformat()
     _router_status_cache = body
-
     public_ip = (body.get("public_ip") or "").strip()
-
-    # Update last_seen_at for each connected device in DB
-    db = get_db()
-    for client in body.get("clients", []):
-        mac = (client.get("mac") or "").lower().strip()
-        ip = client.get("ip") or ""
-        if not mac:
-            continue
-        existing = db.table("devices").select("id", "status").eq("mac_address", mac).limit(1).execute()
-        if existing.data:
-            update_data = {
-                "ip_address": ip,
-                "last_seen_at": utcnow().isoformat(),
-                "hostname": client.get("hostname") or None,
-            }
-            if public_ip:
-                update_data["session_token"] = public_ip
-            db.table("devices").update(update_data).eq("mac_address", mac).execute()
-        else:
-            db.table("devices").insert({
-                "mac_address": mac,
-                "ip_address": ip,
-                "status": "unknown",
-                "last_seen_at": utcnow().isoformat(),
-                "session_token": public_ip if public_ip else None,
-            }).execute()
-
+    background_tasks.add_task(_sync_devices_from_status, body.get("clients", []), public_ip)
     return {"ok": True}
 
 @router.get("/router-status")

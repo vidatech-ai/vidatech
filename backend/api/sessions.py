@@ -193,7 +193,12 @@ async def expired_macs():
     terminated = [s["mac_address"] for s in terminated_result.data if s["mac_address"]] if terminated_result.data else []
     blocked_result = db.table("devices").select("mac_address").eq("status", "blocked").gt("last_seen_at", two_mins_ago).execute()
     blocked = [d["mac_address"] for d in blocked_result.data if d["mac_address"]] if blocked_result.data else []
-    all_macs = list(set(expired + terminated + blocked))
+    # Never order the router to block a MAC that holds a live, unexpired session
+    live_result = db.table("sessions").select("mac_address").eq("status", "active").gt("expires_at", now).execute()
+    blocked_all = db.table("devices").select("mac_address").eq("status", "blocked").execute()
+    blocked_set = {d["mac_address"].lower() for d in (blocked_all.data or []) if d["mac_address"]}
+    live = {s["mac_address"].lower() for s in (live_result.data or []) if s["mac_address"] and s["mac_address"].lower() not in blocked_set}
+    all_macs = [m for m in set(expired + terminated + blocked) if m.lower() not in live]
     return {"macs": all_macs}
 
 

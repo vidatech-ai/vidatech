@@ -193,6 +193,12 @@ async def paystack_webhook(request: Request):
         logger.warning(f"Payment failed for {payment['phone']}: {data.get('gateway_response')}")
         return {"status": "ok"}
 
+    # Idempotency: a repeated webhook must never create a second session
+    already = db.table("sessions").select("id").eq("payment_id", payment["id"]).limit(1).execute()
+    if already.data:
+        logger.info(f"Webhook repeat ignored, session already exists for payment {payment['id']}")
+        return {"status": "ok"}
+
     # charge.success
     txn_code    = data.get("id") or reference
     amount_kes  = int(data.get("amount", 0)) // 100     # convert back from kobo
@@ -257,7 +263,7 @@ async def paystack_webhook(request: Request):
         time.sleep(1)
     if not session:
         logger.error(f"CRITICAL: Failed to create session for payment {payment['id']} after 3 attempts")
-        return {"status": "ok"}
+        raise HTTPException(status_code=500, detail="Session creation failed, retry.")
 
     # Mark device allowed
     if device:

@@ -98,6 +98,10 @@
         <span class="nav-badge" id="feedbackBadge" style="display:none">0</span>
       </button>
 
+      <button class="nav-item" onclick="showPage('vouchers', this)">
+        <span class="icon">🎟️</span> Vouchers
+      </button>
+
       <div class="nav-section-label">System</div>
       <button class="nav-item" onclick="showPage('settings', this)">
         <span class="icon">⚙️</span> Settings
@@ -318,6 +322,91 @@
       </div>
     </div>
 
+    <!-- VOUCHERS -->
+    <div class="page" id="page-vouchers">
+      <div class="section-card">
+        <div class="section-header"><div class="section-title">Generate Vouchers</div></div>
+        <div class="modal-grid">
+          <div class="field">
+            <label>Duration (hours)</label>
+            <input type="number" id="vHours" value="1" min="0.5" step="0.5" />
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+              <button type="button" class="btn-primary" style="width:auto;padding:3px 10px;margin-top:0;font-size:11px" onclick="vSetHours(1)">1h</button>
+              <button type="button" class="btn-primary" style="width:auto;padding:3px 10px;margin-top:0;font-size:11px" onclick="vSetHours(3)">3h</button>
+              <button type="button" class="btn-primary" style="width:auto;padding:3px 10px;margin-top:0;font-size:11px" onclick="vSetHours(6)">6h</button>
+              <button type="button" class="btn-primary" style="width:auto;padding:3px 10px;margin-top:0;font-size:11px" onclick="vSetHours(12)">12h</button>
+              <button type="button" class="btn-primary" style="width:auto;padding:3px 10px;margin-top:0;font-size:11px" onclick="vSetHours(24)">24h</button>
+              <button type="button" class="btn-primary" style="width:auto;padding:3px 10px;margin-top:0;font-size:11px" onclick="vSetHours(72)">3 days</button>
+              <button type="button" class="btn-primary" style="width:auto;padding:3px 10px;margin-top:0;font-size:11px" onclick="vSetHours(168)">7 days</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Devices allowed (1 = one device)</label>
+            <input type="number" id="vDevices" value="1" min="1" max="20" step="1" />
+          </div>
+          <div class="field">
+            <label>Unused voucher expires after (days)</label>
+            <input type="number" id="vDays" value="30" min="1" max="365" step="1" />
+          </div>
+          <div class="field" id="vCountField">
+            <label>Number of vouchers (used when no phone is chosen)</label>
+            <input type="number" id="vCount" value="1" min="1" max="100" step="1" />
+          </div>
+          <div class="field field-full">
+            <label>Phone numbers (optional): tick saved numbers or type new ones. Each number gets its own voucher.</label>
+            <div id="vpChips"></div>
+            <input type="text" id="vpInput" placeholder="Search saved numbers, or type a full number and press Enter" autocomplete="off" oninput="vRenderList()" onkeydown="if(event.key==='Enter'){event.preventDefault();vAddTyped();}" />
+            <div id="vpMsg" style="font-size:12px;color:var(--danger);margin-top:6px"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap">
+              <button type="button" class="btn-primary" style="width:auto;padding:5px 12px;margin-top:0;font-size:12px" onclick="vAddTyped()">Add typed number</button>
+              <button type="button" class="btn-primary" style="width:auto;padding:5px 12px;margin-top:0;font-size:12px" onclick="vSelectShown()">Select all shown</button>
+              <button type="button" class="btn-primary" style="width:auto;padding:5px 12px;margin-top:0;font-size:12px;opacity:.7" onclick="vClearSel()">Clear selection</button>
+              <span id="vpCount" style="font-size:12px;color:var(--muted)"></span>
+            </div>
+            <div id="vpList" style="max-height:220px;overflow:auto;border:1px solid rgba(128,128,128,.35);border-radius:10px"></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn-primary" id="vGenBtn" style="width:auto;padding:10px 24px;margin-top:0;font-size:13px" onclick="vGenerate()">Generate</button>
+          <span id="vGenMsg" style="font-size:13px"></span>
+        </div>
+      </div>
+
+      <div class="section-card" id="vResults" style="display:none">
+        <div class="section-header">
+          <div class="section-title">New Vouchers (send these to your customers)</div>
+          <button type="button" class="btn-primary" style="width:auto;padding:8px 20px;margin-top:0;font-size:13px" onclick="vCopyAll(this)">Copy all</button>
+        </div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Code</th><th>Locked to</th><th>Duration</th><th>Devices</th><th>Use by</th><th></th></tr></thead>
+          <tbody id="vResultsBody"></tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-title">All Vouchers</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="btn-primary" id="vf_all" style="width:auto;padding:5px 12px;margin-top:0;font-size:12px" onclick="vSetFilter('all')">All</button>
+            <button type="button" class="btn-primary" id="vf_unused" style="width:auto;padding:5px 12px;margin-top:0;font-size:12px" onclick="vSetFilter('unused')">Unused</button>
+            <button type="button" class="btn-primary" id="vf_active" style="width:auto;padding:5px 12px;margin-top:0;font-size:12px" onclick="vSetFilter('active')">Active</button>
+            <button type="button" class="btn-primary" id="vf_expired" style="width:auto;padding:5px 12px;margin-top:0;font-size:12px" onclick="vSetFilter('expired')">Expired</button>
+            <button type="button" class="btn-primary" id="vf_revoked" style="width:auto;padding:5px 12px;margin-top:0;font-size:12px" onclick="vSetFilter('revoked')">Revoked</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>Code</th><th>Status</th><th>Duration</th><th>Devices</th><th>Phone</th><th>Redeemed</th><th>Ends</th><th>Actions</th></tr></thead>
+          <tbody id="vTable">
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
     <!-- PAYMENTS -->
     <div class="page" id="page-payments">
       <div class="section-card">
@@ -516,6 +605,7 @@
 
 <script src="src/js/main.js"></script>
 <script src="src/js/admin.js"></script>
+<script src="src/js/vouchers.js"></script>
 <script>
 function backToPortal() { window.location.href = "index.html"; }
 if (typeof token !== "undefined" && token) {

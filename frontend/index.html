@@ -293,6 +293,80 @@
     <div class="scroll-image-caption">Fast. Reliable. Always on.</div>
   </section>
 
+  <!-- VOUCHER LOGIN -->
+  <section id="voucherSection" style="padding:56px 20px;text-align:center">
+    <div style="max-width:400px;margin:0 auto">
+      <div class="section-eyebrow">Have a voucher?</div>
+      <h2 class="section-headline">Redeem Voucher</h2>
+      <p class="section-sub">Enter your phone number and the voucher code you were sent.</p>
+      <div class="field" style="text-align:left">
+        <label>Phone Number</label>
+        <input type="tel" id="vPhone" placeholder="07XX XXX XXX" maxlength="13" autocomplete="tel" />
+      </div>
+      <div class="field" style="text-align:left">
+        <label>Voucher Code</label>
+        <input type="text" id="vCode" placeholder="XXXX-XXXX" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-transform:uppercase;letter-spacing:2px;font-family:monospace" onkeydown="if(event.key==='Enter')redeemVoucher()" />
+      </div>
+      <button class="btn-primary" id="vBtn" onclick="redeemVoucher()">Redeem &amp; Connect</button>
+      <div id="vMsg" style="display:none;margin-top:16px;font-size:14px;line-height:1.6"></div>
+    </div>
+  </section>
+<script>
+var _vBusy = false;
+function vShowMsg(ok, text) {
+  var el = document.getElementById('vMsg');
+  el.style.display = 'block';
+  el.style.color = ok ? '#10b981' : '#f87171';
+  el.textContent = text;
+}
+async function vGetMac() {
+  try {
+    var m = new URLSearchParams(window.location.search).get('mac');
+    if (m) return m;
+  } catch (e) {}
+  try {
+    var r = await fetch('http://192.168.2.1/cgi-bin/getmac', { cache: 'no-store' });
+    var d = await r.json();
+    if (d && d.mac) return d.mac;
+  } catch (e) {}
+  return null;
+}
+async function redeemVoucher() {
+  if (_vBusy) return;
+  var btn = document.getElementById('vBtn');
+  var phone = document.getElementById('vPhone').value.trim();
+  var code = document.getElementById('vCode').value.trim();
+  if (!phone || !code) { vShowMsg(false, 'Enter your phone number and voucher code.'); return; }
+  _vBusy = true;
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  try {
+    var mac = await vGetMac();
+    var res = await fetch(API + '/api/vouchers/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone, code: code, mac: mac })
+    });
+    var data = await res.json();
+    if (data && data.allowed) {
+      if (typeof authorizeOnRouter === 'function') {
+        try { await authorizeOnRouter(data.mac_address); } catch (e) {}
+      }
+      var exp = new Date(data.expires_at);
+      vShowMsg(true, 'Voucher accepted! Your internet is turning on, this takes a few seconds. Valid until ' + exp.toLocaleString() + '. Devices used: ' + data.devices_used + ' of ' + data.devices_total + '.');
+    } else {
+      vShowMsg(false, (data && data.message) || 'Could not redeem this voucher. Please try again.');
+    }
+  } catch (e) {
+    vShowMsg(false, 'Could not reach the server. Make sure you are connected to the WiFi and try again.');
+  } finally {
+    _vBusy = false;
+    btn.disabled = false;
+    btn.textContent = 'Redeem & Connect';
+  }
+}
+</script>
+
   <!-- PAYMENT FORM -->
   <section class="pay-section" id="paySection">
     <div class="pay-inner" id="payFormWrap">

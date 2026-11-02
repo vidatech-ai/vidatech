@@ -22,6 +22,7 @@ from api import (
     reports,
     settings as settings_router,
     feedback,
+    vouchers,
 )
 from auth import router as auth_router
 from security.audit import log_event
@@ -134,3 +135,4 @@ app.include_router(devices.router,        prefix=f"{API_PREFIX}/devices",  tags=
 app.include_router(reports.router,        prefix=f"{API_PREFIX}/reports",  tags=["Reports"])
 app.include_router(settings_router.router,prefix=f"{API_PREFIX}/settings", tags=["Settings"])
 app.include_router(feedback.router,        prefix=f"{API_PREFIX}/feedback",  tags=["Feedback"])
+app.include_router(vouchers.router,        prefix=f"{API_PREFIX}/vouchers",  tags=["Vouchers"])

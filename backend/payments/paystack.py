@@ -106,3 +106,24 @@ def verify_webhook_signature(payload: bytes, signature: str) -> bool:
         hashlib.sha512,
     ).hexdigest()
     return hmac.compare_digest(expected, signature)
+
+
+async def verify_transaction(reference: str):
+    """Ask Paystack directly whether a charge succeeded. Returns Paystack's data dict, or None on any problem."""
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}",
+                headers={"Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}"},
+                timeout=10,
+            )
+        if r.status_code != 200:
+            logger.warning(f"Paystack verify HTTP {r.status_code} for {reference}")
+            return None
+        body = r.json()
+        if not body.get("status"):
+            return None
+        return body.get("data")
+    except Exception as e:
+        logger.warning(f"Paystack verify error for {reference}: {e}")
+        return None

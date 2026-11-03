@@ -11,7 +11,7 @@ from typing import Optional
 from auth.dependencies import require_admin
 from db import get_db
 from utils import normalise_phone, utcnow, hours_from_now
-from payments.paystack import initiate_stk_push, verify_webhook_signature, PaystackError
+from payments.paystack import initiate_stk_push, verify_webhook_signature, PaystackError, verify_transaction
 
 logger = logging.getLogger("vidatech.payments")
 router = APIRouter()
@@ -193,6 +193,14 @@ async def paystack_webhook(request: Request):
         logger.warning(f"Payment failed for {payment['phone']}: {data.get('gateway_response')}")
         return {"status": "ok"}
 
+    return await _confirm_success(db, payment, package, data, reference)
+
+
+_VERIFY_AT = {}
+
+
+async def _confirm_success(db, payment, package, data, reference):
+    """Single place that turns a successful charge into a session. Safe to call twice."""
     # Idempotency: a repeated webhook must never create a second session
     already = db.table("sessions").select("id").eq("payment_id", payment["id"]).limit(1).execute()
     if already.data:
@@ -260,6 +268,10 @@ async def paystack_webhook(request: Request):
             logger.error(f"Session insert returned no data on attempt {_attempt+1} for payment {payment['id']}")
         except Exception as _e:
             logger.error(f"Session insert error on attempt {_attempt+1}: {_e}")
+            _dup = db.table("sessions").select("id").eq("payment_id", payment["id"]).limit(1).execute()
+            if _dup.data:
+                logger.info(f"Session already exists for payment {payment['id']} (concurrent confirm), skipping")
+                return {"status": "ok"}
         time.sleep(1)
     if not session:
         logger.error(f"CRITICAL: Failed to create session for payment {payment['id']} after 3 attempts")
@@ -326,10 +338,52 @@ async def latest_payment_status(phone: str):
 async def payment_status(payment_id: str):
     """Customer polls this to know if their payment went through."""
     db = get_db()
-    result = db.table("payments").select("id, status, mpesa_transaction_code, confirmed_at").eq("id", payment_id).single().execute()
+    result = db.table("payments").select("id, status, mpesa_transaction_code, confirmed_at, mpesa_checkout_id").eq("id", payment_id).single().execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Payment not found.")
-    return result.data
+    pay = result.data
+
+    # Fallback: webhook late or lost. Ask Paystack directly (throttled to once per 3s per payment).
+    if pay["status"] == "pending" and pay.get("mpesa_checkout_id"):
+        import time as _t
+        _now = _t.monotonic()
+        if _now - _VERIFY_AT.get(payment_id, 0) >= 3:
+            _VERIFY_AT[payment_id] = _now
+            if len(_VERIFY_AT) > 500:
+                for _k in list(_VERIFY_AT)[:250]:
+                    _VERIFY_AT.pop(_k, None)
+            try:
+                verified = await verify_transaction(pay["mpesa_checkout_id"])
+                vstatus = (verified or {}).get("status")
+                if vstatus == "success":
+                    full = db.table("payments").select("*, packages(*)").eq("id", payment_id).single().execute().data
+                    await _confirm_success(db, full, full["packages"], verified, pay["mpesa_checkout_id"])
+                elif vstatus == "failed":
+                    db.table("payments").update({
+                        "status": "failed",
+                        "failure_reason": verified.get("gateway_response", "Payment failed"),
+                    }).eq("id", payment_id).eq("status", "pending").execute()
+            except Exception as e:
+                logger.warning(f"Paystack verify fallback failed for {payment_id}: {e}")
+            pay = db.table("payments").select("id, status, mpesa_transaction_code, confirmed_at, mpesa_checkout_id").eq("id", payment_id).single().execute().data
+
+    # Self-heal: confirmed in the last 30 min but no session exists, so create it now
+    if pay["status"] == "confirmed" and pay.get("confirmed_at"):
+        try:
+            has = db.table("sessions").select("id").eq("payment_id", payment_id).limit(1).execute()
+            if not has.data:
+                import datetime
+                cutoff = (datetime.datetime.utcnow() - datetime.timedelta(minutes=30)).isoformat()
+                recent = db.table("payments").select("*, packages(*)").eq("id", payment_id).gt("confirmed_at", cutoff).execute().data
+                if recent:
+                    full = recent[0]
+                    ref = full.get("mpesa_checkout_id")
+                    fake = {"id": full.get("mpesa_transaction_code") or ref, "amount": int(float(full["amount_kes"])) * 100}
+                    await _confirm_success(db, full, full["packages"], fake, ref)
+        except Exception as e:
+            logger.warning(f"Session self-heal failed for {payment_id}: {e}")
+
+    return {k: pay.get(k) for k in ("id", "status", "mpesa_transaction_code", "confirmed_at")}
 
 # ---------------------------------------------------------------------------
 # Internal helper — saves Paystack settlement to DB

@@ -70,7 +70,9 @@ async def terminate_session(session_id: str, admin=Depends(require_admin)):
 
 
 @router.get("/reconnect-by-phone")
-async def reconnect_by_phone(phone: str, request: Request):
+async def reconnect_by_phone(phone: str, request: Request, mac: str = None):
+    """Returning paid customer: the live session moves to the device they are using now."""
+    import re
     db = get_db()
     phone = normalise_phone(phone)
     if not phone:
@@ -79,88 +81,63 @@ async def reconnect_by_phone(phone: str, request: Request):
         request.headers.get("x-forwarded-for", "").split(",")[0].strip()
         or request.client.host
     )
-    dev_result = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
-    new_mac = dev_result.data[0]["mac_address"].lower() if dev_result.data else None
-    sess_result = db.table("sessions").select(
-        "id, expires_at, mac_address, packages(name)"
-    ).eq("phone", phone).eq("status", "active").order("expires_at", desc=True).execute()
-    if not sess_result.data:
-        pay_result = db.table("payments").select("id").eq("phone", phone).eq("status", "confirmed").execute()
-        if not pay_result.data:
-            return {"allowed": False, "reason": "no_active_sessions"}
-        payment_ids = [p["id"] for p in pay_result.data]
-        sess_result2 = db.table("sessions").select(
-            "id, expires_at, mac_address, packages(name)"
-        ).in_("payment_id", payment_ids).eq("status", "active").execute()
-        if not sess_result2.data:
-            return {"allowed": False, "reason": "no_active_sessions"}
-        sessions = sess_result2.data
-    else:
-        sessions = sess_result.data
+    new_mac = None
+    if mac and re.fullmatch(r"([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}", mac.strip()) and mac.strip() != "00:00:00:00:00:00":
+        new_mac = mac.strip().lower()
+    if not new_mac:
+        dev = db.table("devices").select("mac_address").eq("ip_address", client_ip).limit(1).execute()
+        if dev.data and dev.data[0].get("mac_address") not in (None, "00:00:00:00:00:00"):
+            new_mac = dev.data[0]["mac_address"].lower()
+    if not new_mac:
+        return {"allowed": False, "reason": "device_not_detected",
+                "message": "We could not detect your device. Reconnect to the WiFi and try again."}
+
     now = utcnow().isoformat()
-    active_sessions = [s for s in sessions if s["expires_at"] > now]
-    if not active_sessions:
-        return {"allowed": False, "reason": "session_expired"}
-    for s in active_sessions:
-        if s["mac_address"] and s["mac_address"].lower() == new_mac:
-            return {
-                "allowed": True,
-                "expires_at": s["expires_at"],
-                "package": s["packages"]["name"] if s.get("packages") else "—",
-                "phone": phone,
-                "mac_address": new_mac,
-                "slots_used": len(active_sessions),
-                "slots_total": len(active_sessions),
-            }
-    total_slots = len(active_sessions)
-    available_session = None
-    for s in active_sessions:
-        if not s["mac_address"]:
-            available_session = s
-            break
-    if not available_session:
-        five_mins_ago = (datetime.datetime.utcnow() - datetime.timedelta(seconds=30)).isoformat()
-        for s in active_sessions:
-            if s["mac_address"]:
-                dev = db.table("devices").select("last_seen_at").eq("mac_address", s["mac_address"]).limit(1).execute()
-                if dev.data and dev.data[0]["last_seen_at"] < five_mins_ago:
-                    available_session = s
-                    break
-    if not available_session:
-        best = active_sessions[0]
-        return {
-            "allowed": False,
-            "reason": "all_slots_in_use",
-            "slots_total": total_slots,
-            "expires_at": best["expires_at"],
-            "package": best["packages"]["name"] if best.get("packages") else "—",
-            "phone": phone,
-            "message": f"All {total_slots} device slot(s) are currently in use. Disconnect another device first."
-        }
-    if new_mac:
-        old_mac = available_session.get("mac_address")
-        if old_mac and old_mac != new_mac:
-            import httpx
-            try:
-                async with httpx.AsyncClient() as hclient:
-                    await hclient.get(f"http://192.168.2.1/cgi-bin/auth?deauth={old_mac}", timeout=3)
-            except Exception:
-                pass
-        db.table("sessions").update({"mac_address": new_mac}).eq("id", available_session["id"]).execute()
-        db.table("devices").upsert({
-            "mac_address": new_mac,
-            "ip_address": client_ip,
-            "status": "allowed",
-            "last_seen_at": utcnow().isoformat(),
-        }, on_conflict="mac_address").execute()
+    cols = "id, expires_at, mac_address, payment_id, packages(name)"
+    live = db.table("sessions").select(cols).eq("phone", phone).eq("status", "active").gt("expires_at", now).order("expires_at", desc=True).execute().data or []
+    if not live:
+        pays = db.table("payments").select("id").eq("phone", phone).eq("status", "confirmed").execute().data or []
+        if pays:
+            live = db.table("sessions").select(cols).in_("payment_id", [p["id"] for p in pays]).eq("status", "active").gt("expires_at", now).order("expires_at", desc=True).execute().data or []
+    live = [x for x in live if x.get("payment_id")]
+    if not live:
+        stale = db.table("sessions").select("id, payment_id").eq("phone", phone).eq("status", "active").execute().data or []
+        stale = [x for x in stale if x.get("payment_id")]
+        return {"allowed": False, "reason": "session_expired" if stale else "no_active_sessions"}
+
+    drow = db.table("devices").select("status").eq("mac_address", new_mac).limit(1).execute().data
+    if drow and drow[0].get("status") == "blocked":
+        return {"allowed": False, "reason": "device_blocked",
+                "message": "This device is blocked. Please contact the admin."}
+
+    mine = next((x for x in live if (x.get("mac_address") or "").lower() == new_mac), None)
+    target = mine
+    if target is None:
+        free = [x for x in live if not x.get("mac_address")]
+        if free:
+            target = free[0]
+        else:
+            seen = {}
+            for x in live:
+                d = db.table("devices").select("last_seen_at").eq("mac_address", x["mac_address"].lower()).limit(1).execute().data
+                seen[x["id"]] = (d[0].get("last_seen_at") or "") if d else ""
+            target = min(live, key=lambda x: seen[x["id"]])
+        db.table("sessions").update({"mac_address": new_mac, "ip_address": client_ip}).eq("id", target["id"]).execute()
+        logger.info(f"Reconnect: session {target['id']} moved from {target.get('mac_address')} to {new_mac}")
+    db.table("devices").upsert({
+        "mac_address": new_mac,
+        "ip_address": client_ip,
+        "status": "allowed",
+        "last_seen_at": utcnow().isoformat(),
+    }, on_conflict="mac_address").execute()
     return {
         "allowed": True,
-        "expires_at": available_session["expires_at"],
-        "package": available_session["packages"]["name"] if available_session.get("packages") else "—",
+        "expires_at": target["expires_at"],
+        "package": target["packages"]["name"] if target.get("packages") else "—",
         "phone": phone,
         "mac_address": new_mac,
-        "slots_used": len([s for s in active_sessions if s["mac_address"]]),
-        "slots_total": total_slots,
+        "slots_used": len([x for x in live if x.get("mac_address")] + ([] if mine or not target is None and False else [])),
+        "slots_total": len(live),
     }
 
 

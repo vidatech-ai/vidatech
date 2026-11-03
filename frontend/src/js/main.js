@@ -194,8 +194,8 @@ async function handlePayment() {
     const poll = setInterval(async () => {
       attempts++;
 
-      // Timeout after 2 minutes (24 × 5s)
-      if (attempts > 24) {
+      // Timeout after 2 minutes (60 polls x 2s)
+      if (attempts > 60) {
         clearInterval(poll);
         document.getElementById('progressWrap').classList.remove('show');
         btn.disabled = false;
@@ -203,8 +203,8 @@ async function handlePayment() {
         return;
       }
 
-      const pct = Math.min(30 + attempts * 2, 70);
-      setProgress(pct, attempts < 7
+      const pct = Math.min(30 + attempts, 70);
+      setProgress(pct, attempts < 15
         ? 'Waiting for M-Pesa confirmation…'
         : 'Still waiting — please check your phone and enter your PIN…'
       );
@@ -217,32 +217,38 @@ async function handlePayment() {
           clearInterval(poll);
           setProgress(75, 'Payment confirmed! Activating your internet access…');
 
-          // Agent runs every 5s max — poll /check until allowed, up to 70s
-          let waitAttempts = 0;
-          const waitForAgent = setInterval(async () => {
-            waitAttempts++;
-            const waitPct = Math.min(75 + waitAttempts * 2, 98);
-            setProgress(waitPct, `Activating… (${waitAttempts * 5}s)`);
-
-            try {
-              const cr = await fetch(`${API}/api/sessions/check/${_clientMac}`);
-              const cd = await cr.json();
-              if (cd.allowed) {
-                clearInterval(waitForAgent);
-                setProgress(100, 'You are connected! Enjoy your session.');
-                setTimeout(() => showActiveSession(phone, sd), 600);
-                return;
-              }
-            } catch(e) {}
-
-            if (waitAttempts >= 14) {
-              // 70s passed — agent may be slow but payment IS confirmed
-              // Show connected anyway; internet will follow within seconds
-              clearInterval(waitForAgent);
-              setProgress(100, 'You are connected! Enjoy your session.');
-              setTimeout(() => showActiveSession(phone, sd), 600);
+          // Confirm the internet really works from THIS device before saying "connected"
+          (async () => {
+            const startedAt = Date.now();
+            let online = false;
+            while (Date.now() - startedAt < 45000) {
+              const secs = Math.round((Date.now() - startedAt) / 1000);
+              setProgress(Math.min(75 + secs, 98), `Activating your internet… (${secs}s)`);
+              try {
+                const ctl = new AbortController();
+                const to = setTimeout(() => ctl.abort(), 2500);
+                await fetch('https://www.gstatic.com/generate_204?_=' + Date.now(), { mode: 'no-cors', cache: 'no-store', signal: ctl.signal });
+                clearTimeout(to);
+                online = true;
+              } catch(e) {}
+              if (online) break;
+              await new Promise(r => setTimeout(r, 1000));
             }
-          }, 5000);
+            setProgress(100, online ? 'You are connected! Enjoy your session.' : 'Payment received. Your internet is still switching on.');
+            setTimeout(() => {
+              showActiveSession(phone, sd);
+              if (!online) {
+                const sc = document.getElementById('stateConnected');
+                if (sc && !document.getElementById('slowNote')) {
+                  const d = document.createElement('div');
+                  d.id = 'slowNote';
+                  d.style.cssText = 'margin-top:14px;font-size:13px;line-height:1.6;color:#facc15;text-align:center';
+                  d.textContent = 'Your payment is confirmed. If pages do not load within a minute, reconnect to the WiFi and open any website.';
+                  sc.appendChild(d);
+                }
+              }
+            }, 600);
+          })();
 
         } else if (sd.status === 'failed') {
           clearInterval(poll);
@@ -251,7 +257,7 @@ async function handlePayment() {
           alert('Payment failed. Please try again.');
         }
       } catch(e) { /* ignore transient polling errors */ }
-    }, 5000);
+    }, 2000);
 
   } catch(e) {
     const progressWrap = document.getElementById('progressWrap');
@@ -1021,7 +1027,8 @@ async function checkMySession() {
     const phone = prompt('Enter your M-Pesa number (e.g. 0712345678):');
     if (!phone) return;
 
-    const res = await fetch(`${API}/api/sessions/reconnect-by-phone?phone=${encodeURIComponent(phone.trim())}`);
+    const macQ = (typeof _clientMac !== 'undefined' && _clientMac) ? '&mac=' + encodeURIComponent(_clientMac) : '';
+    const res = await fetch(`${API}/api/sessions/reconnect-by-phone?phone=${encodeURIComponent(phone.trim())}${macQ}`);
     const data = await res.json();
 
     if (data.allowed) {

@@ -27,9 +27,34 @@
 .how-image-wrap{max-width:900px;margin:0 auto 48px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);position:relative}
 .how-image{display:block;width:100%;height:260px;object-fit:cover;filter:saturate(1.1) brightness(0.85)}
 </style>
+<style id="portal-v2">
+html{scroll-behavior:smooth}
+.v2-uptime{display:flex;align-items:center;gap:12px;justify-content:center;padding:11px 16px;background:linear-gradient(90deg,rgba(16,185,129,.18),rgba(14,165,233,.14));border-bottom:1px solid rgba(16,185,129,.35);color:#e7fff6;font-size:13px;line-height:1.5;text-align:left}
+.v2-uptime strong{color:#34d399}
+.v2-pulse{flex:0 0 auto;width:10px;height:10px;border-radius:50%;background:#10b981;box-shadow:0 0 0 0 rgba(16,185,129,.7);animation:v2pulse 2s infinite}
+@keyframes v2pulse{70%{box-shadow:0 0 0 10px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+.v2-quick{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:28px 0 8px;width:100%}
+@media(max-width:640px){.v2-quick{grid-template-columns:1fr}}
+.v2-qcard{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:16px;text-decoration:none;color:#fff;background:rgba(0,0,0,.55);backdrop-filter:blur(12px);border:1.5px solid;box-sizing:border-box;transition:transform .2s;text-align:left}
+.v2-qcard:hover{transform:translateY(-2px)}
+.v2-reconnect{border-color:rgba(16,185,129,.7);box-shadow:0 0 24px rgba(16,185,129,.18)}
+.v2-voucher{border-color:rgba(139,92,246,.7);box-shadow:0 0 24px rgba(139,92,246,.18)}
+.v2-qicon{font-size:28px;flex:0 0 auto}
+.v2-qtext{display:flex;flex-direction:column;gap:3px;flex:1}
+.v2-qtext strong{font-family:'Space Grotesk',sans-serif;font-size:15px}
+.v2-reconnect strong{color:#34d399}
+.v2-voucher strong{color:#a78bfa}
+.v2-qtext small{font-size:12px;color:rgba(255,255,255,.7);line-height:1.5}
+.v2-qgo{font-size:22px;color:rgba(255,255,255,.6)}
+#checkSection{background:radial-gradient(ellipse at top,rgba(16,185,129,.14),transparent 60%),var(--surface,#111118)!important;border-top:2px solid rgba(16,185,129,.5)!important}
+#voucherSection{background:radial-gradient(ellipse at top,rgba(139,92,246,.14),transparent 60%)}
+#voucherSection>div{background:rgba(255,255,255,.04);border:1.5px solid rgba(139,92,246,.45);border-radius:20px;padding:28px 22px;box-sizing:border-box;box-shadow:0 0 40px rgba(139,92,246,.12)}
+.v2-note{max-width:400px;margin:0 auto 18px;padding:10px 14px;border-radius:10px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#d1fae5;font-size:12.5px;line-height:1.6;text-align:center}
+</style>
 </head>
-<body><div id="maint-banner" style="position:sticky;top:0;z-index:99999;background:#d32f2f;color:#fff;padding:14px 16px;text-align:center;font-weight:700;font-size:15px;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.3)">&#9888;&#65039; MAINTENANCE IN PROGRESS<br><span style="font-weight:500">Please DO NOT PAY right now. We are under maintenance for a few hours. Sorry for the inconvenience, please try again later.</span></div>
+<body>
 <div id="portalView">
+<div class="v2-uptime"><span class="v2-pulse"></span><div><strong>Online 24/7</strong> &mdash; Vidatech WiFi runs day and night. During a power outage there is a short window of about 5 minutes while we switch from mains to backup power.</div></div>
 
 
 
@@ -134,6 +159,10 @@
       <div class="hero-cta">
         <button class="btn-hero" onclick="scrollToPay()">Get Connected Now</button>
         <button class="btn-hero-ghost" onclick="scrollToPackages()">View Packages</button>
+      </div>
+      <div class="v2-quick">
+        <a class="v2-qcard v2-reconnect" href="#checkSection" onclick="document.getElementById('checkSection').scrollIntoView({behavior:'smooth'});return false;"><span class="v2-qicon">&#128260;</span><span class="v2-qtext"><strong>Already paid? Reconnect here</strong><small>Lost connection or changed device? Get back online with your active session. No new payment.</small></span><span class="v2-qgo">&rsaquo;</span></a>
+        <a class="v2-qcard v2-voucher" href="#voucherSection" onclick="document.getElementById('voucherSection').scrollIntoView({behavior:'smooth'});return false;"><span class="v2-qicon">&#127903;&#65039;</span><span class="v2-qtext"><strong>Have a voucher?</strong><small>Enter your phone number and code to get online.</small></span><span class="v2-qgo">&rsaquo;</span></a>
       </div>
     </div>
 
@@ -241,9 +270,10 @@
 
   <!-- CHECK SESSION -->
   <section class="check-section" id="checkSection" style="background:var(--surface);border-top:1px solid var(--border)">
-    <div class="section-eyebrow">Already Paid?</div>
-    <h2 class="section-headline">Check Your Session</h2>
-    <p class="section-sub">Enter your M-Pesa number to check your connection status.</p>
+    <div class="section-eyebrow">Already Paid? Start Here</div>
+    <h2 class="section-headline">Reconnect to Your Active Session</h2>
+    <p class="section-sub">Paid earlier and lost connection, or changed device? Reconnect here. No need to pay again.</p>
+    <div class="v2-note">Use the same M-Pesa number you paid with. If your session is still running, you will be reconnected in seconds.</div>
     <div class="check-image-wrap">
       <img class="check-image" src="/src/assets/images/person-connected.jpg" alt="Person connected on phone" loading="lazy" />
     </div>
@@ -298,7 +328,7 @@
     <div style="max-width:400px;margin:0 auto">
       <div class="section-eyebrow">Have a voucher?</div>
       <h2 class="section-headline">Redeem Voucher</h2>
-      <p class="section-sub">Enter your phone number and the voucher code you were sent.</p>
+      <p class="section-sub">Got a voucher code? Enter your phone number and the code you were sent to get online.</p>
       <div class="field" style="text-align:left">
         <label>Phone Number</label>
         <input type="tel" id="vPhone" placeholder="07XX XXX XXX" maxlength="13" autocomplete="tel" />

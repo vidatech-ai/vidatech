@@ -286,8 +286,10 @@ html{scroll-behavior:smooth}
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px">
         Enter your M-Pesa number to check your session or reconnect your device.
       </div>
+      <div class="field" style="text-align:left"><label>M-Pesa Phone Number</label><input type="tel" id="checkPhone" placeholder="07XX XXX XXX" maxlength="13" autocomplete="tel" onkeydown="if(event.key==='Enter')checkMySession()" /></div>
       <button class="btn-primary" onclick="checkMySession()">🔍 Check My Connection</button>
       <div id="checkResult" style="display:none;margin-top:24px;text-align:center">
+        <div id="checkMsg" style="display:none;margin-bottom:16px;padding:12px 14px;border-radius:10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.4);color:#fde68a;font-size:13px;line-height:1.6"></div>
         <div id="checkActive" style="display:none">
           <div class="session-badge" style="justify-content:center;margin-bottom:16px">
             <div class="session-dot"></div>
@@ -500,7 +502,7 @@ async function redeemVoucher() {
   var s = document.createElement('script');
   s.src = window.location.hostname === '192.168.2.1'
     ? '/main.js'
-    : 'https://vidatech-wifi.pages.dev/src/js/main.js?v=3';
+    : 'https://vidatech-wifi.pages.dev/src/js/main.js?v=4';
   document.body.appendChild(s);
 })();
 </script>

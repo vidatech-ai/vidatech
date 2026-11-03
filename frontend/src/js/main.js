@@ -1022,10 +1022,24 @@ async function checkMySession() {
   document.getElementById('checkActive').style.display = 'none';
   document.getElementById('checkExpired').style.display = 'none';
   document.getElementById('checkNotFound').style.display = 'none';
+  const _cm = document.getElementById('checkMsg');
+  if (_cm) _cm.style.display = 'none';
 
   try {
-    const phone = prompt('Enter your M-Pesa number (e.g. 0712345678):');
-    if (!phone) return;
+    const phoneEl = document.getElementById('checkPhone');
+    const phone = phoneEl ? phoneEl.value.trim() : '';
+    if (!phone) {
+      document.getElementById('checkResult').style.display = 'block';
+      if (_cm) { _cm.textContent = 'Please enter the M-Pesa number you paid with.'; _cm.style.display = 'block'; }
+      return;
+    }
+    if (!_clientMac) {
+      try {
+        const _r = await fetch((window.location.hostname === '192.168.2.1' ? '' : 'http://192.168.2.1') + '/cgi-bin/getmac', { cache: 'no-store' });
+        const _d = await _r.json();
+        if (_d && _d.mac) _clientMac = String(_d.mac).toLowerCase();
+      } catch (e) {}
+    }
 
     const macQ = (typeof _clientMac !== 'undefined' && _clientMac) ? '&mac=' + encodeURIComponent(_clientMac) : '';
     const res = await fetch(`${API}/api/sessions/reconnect-by-phone?phone=${encodeURIComponent(phone.trim())}${macQ}`);
@@ -1086,6 +1100,16 @@ async function checkMySession() {
       document.getElementById('checkExpired').style.display = 'block';
       document.getElementById('checkExpiredDetails').innerHTML =
         `Package: <strong>${data.package ?? '—'}</strong><br>Session has expired.`;
+    } else if (data.reason === 'device_not_detected' || data.reason === 'device_blocked' || data.reason === 'invalid_phone') {
+      const _m = document.getElementById('checkMsg');
+      if (_m) {
+        _m.textContent = data.reason === 'invalid_phone'
+          ? 'That phone number does not look right. Use the format 07XX XXX XXX.'
+          : (data.message || 'Could not check your session.') + (data.reason === 'device_not_detected' ? ' Make sure you are connected to Vidatech WiFi, open 192.168.2.1 in your browser and try again.' : '');
+        _m.style.display = 'block';
+      } else {
+        document.getElementById('checkNotFound').style.display = 'block';
+      }
     } else {
       document.getElementById('checkNotFound').style.display = 'block';
     }

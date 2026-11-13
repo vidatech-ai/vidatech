@@ -75,7 +75,7 @@ async def initiate_stk_push(
             raise PaystackError("Could not reach payment provider. Please try again.")
 
         if response.status_code >= 400:
-            logger.error(f"Paystack raw error: {response.text}")
+            logger.error(f"Paystack raw error: HTTP {response.status_code} | {response.text[:300]}")
             try:
                 err_body = response.json()
             except ValueError:

@@ -37,6 +37,7 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
     Customer initiates payment.
     Triggers M-Pesa STK push to their phone via Paystack.
     """
+    import time as _time; _t0=_time.monotonic()
     db = get_db()
 
     phone = normalise_phone(body.phone)
@@ -88,6 +89,7 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
 
     payment = payment_result.data[0]
 
+    logger.info(f"TIMING before paystack: {_time.monotonic()-_t0:.1f}s")
     # Initiate STK push via Paystack
     try:
         reference = await initiate_stk_push(
@@ -97,7 +99,7 @@ async def initiate_payment(body: PaymentInitiate, request: Request):
             description=f"{package['name']} - Vidatech WiFi",
         )
     except PaystackError as e:
-        logger.error(f"STK push rejected by Paystack: {e}")
+        logger.error(f"STK push rejected by Paystack: {e} | TIMING total {_time.monotonic()-_t0:.1f}s")
         db.table("payments").update({
             "status": "failed",
             "failure_reason": str(e),
